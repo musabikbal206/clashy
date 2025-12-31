@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Clash Royale: Hybrid Multiplayer</title>
+    <title>Clash Royale: View Fixed</title>
     
-    <!-- External Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
@@ -14,130 +13,71 @@
         @import url('https://fonts.googleapis.com/css2?family=Titan+One&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@700;900&display=swap');
 
-        :root {
-            --blue: #4789CE;
-            --red: #EB4847;
-            --hud-bg: #2b2018; 
-            --gold: #ffce00;
-        }
+        :root { --blue:#4789CE; --red:#EB4847; --hud-bg:#2b2018; --gold:#ffce00; }
+        * { box-sizing:border-box; touch-action:none; user-select:none; -webkit-user-select:none; font-family:'Titan One',cursive; }
+        body,html { margin:0; padding:0; width:100%; height:100%; background:#111; overflow:hidden; }
+        #app { position:relative; width:100%; height:100%; max-width:550px; margin:0 auto; background:#333; overflow:hidden; box-shadow:0 0 50px #000; }
 
-        * {
-            box-sizing: border-box;
-            touch-action: none;
-            user-select: none;
-            -webkit-user-select: none;
-            font-family: 'Titan One', cursive;
-        }
+        #menu-layer { position:absolute; top:0; left:0; width:100%; height:100%; background:linear-gradient(135deg,#1f3b73,#162447); z-index:300; display:flex; flex-direction:column; overflow-y:auto; }
+        .menu-header { padding:20px; text-align:center; background:rgba(0,0,0,0.2); flex-shrink:0; }
+        .game-title { font-size:40px; color:#ffce00; text-shadow:0 4px 0 #b35900; margin:0; line-height:1; }
+        .player-stats { margin-top:10px; color:#fff; font-family:'Roboto',sans-serif; font-size:16px; display:flex; justify-content:center; gap:20px; }
+        .collection-grid { padding:15px; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; overflow-y:auto; flex:1; }
+        .collection-card { background:#7a8c99; border:3px solid #222; border-radius:8px; display:flex; flex-direction:column; align-items:center; padding:10px 5px; position:relative; }
+        .collection-card.rare { background:#ffbe4d; border-color:#8a5a00; } .collection-card.epic { background:#d000ff; border-color:#4a005c; }
+        .c-lvl-badge { position:absolute; top:-5px; left:-5px; background:#222; color:#fff; font-size:12px; padding:2px 6px; border-radius:4px; font-family:'Roboto',sans-serif; }
+        .upgrade-btn { margin-top:5px; background:#5D9E44; border:none; border-bottom:3px solid #3e6b2c; border-radius:4px; color:#fff; font-size:10px; padding:4px 8px; width:100%; font-family:'Roboto',sans-serif; }
+        .play-btn-container { padding:20px; background:rgba(0,0,0,0.4); display:flex; justify-content:center; gap:10px; }
+        .btn-main { background:#ffce00; color:#5c3a00; font-size:20px; padding:15px 20px; border:none; border-bottom:6px solid #b38b00; border-radius:12px; flex:1; }
+        .btn-blue { background:#4789CE; color:#fff; border-bottom-color:#2a5a8a; }
 
-        body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            background: #111; overflow: hidden;
-        }
+        #mp-lobby { display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:#111; z-index:400; flex-direction:column; padding:10px; color:#fff; overflow-y:auto; }
+        .qr-container { background:#fff; padding:10px; border-radius:8px; margin:10px auto; display:inline-block; }
+        #camera-container { width:100%; max-width:280px; height:220px; background:#000; margin:10px auto; position:relative; border:2px solid #ffce00; border-radius:8px; overflow:hidden; }
+        video { width:100%; height:100%; object-fit:cover; }
+        .status-txt { text-align:center; color:#aaa; font-size:14px; margin:5px 0; font-family:'Roboto'; }
+        .step-title { color:#ffce00; font-size:18px; text-align:center; margin-bottom:5px; }
+        .fallback-area { width:100%; max-width:320px; margin:10px auto; background:#222; padding:10px; border-radius:8px; display:none; }
+        .fallback-area.visible { display:block; }
+        textarea { width:100%; height:50px; background:#000; border:1px solid #555; color:#aaa; font-size:10px; resize:none; }
+        .toggle-link { color:#4789CE; text-decoration:underline; font-size:12px; font-family:sans-serif; cursor:pointer; text-align:center; display:block; margin-top:5px; }
 
-        #app {
-            position: relative; width: 100%; height: 100%;
-            max-width: 550px; margin: 0 auto; background: #333;
-            overflow: hidden; box-shadow: 0 0 50px #000;
-        }
-
-        /* --- MENU --- */
-        #menu-layer {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, #1f3b73, #162447);
-            z-index: 300; display: flex; flex-direction: column; overflow-y: auto;
-        }
-
-        .menu-header { padding: 20px; text-align: center; background: rgba(0,0,0,0.2); flex-shrink: 0; }
-        .game-title { font-size: 40px; color: #ffce00; text-shadow: 0 4px 0 #b35900, 0 10px 10px rgba(0,0,0,0.5); margin: 0; line-height: 1; }
-        .player-stats { margin-top: 10px; color: #fff; font-family: 'Roboto', sans-serif; font-size: 16px; display: flex; justify-content: center; gap: 20px; }
-        .stat-badge { background: #000; padding: 5px 15px; border-radius: 15px; border: 1px solid #555; }
-
-        .collection-grid { padding: 15px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; overflow-y: auto; flex: 1; }
-        .collection-card { background: #7a8c99; border: 3px solid #222; border-radius: 8px; display: flex; flex-direction: column; align-items: center; padding: 10px 5px; position: relative; box-shadow: 0 4px 0 #111; }
-        .collection-card.rare { background: #ffbe4d; border-color: #8a5a00; }
-        .collection-card.epic { background: #d000ff; border-color: #4a005c; }
-        .c-lvl-badge { position: absolute; top: -5px; left: -5px; background: #222; color: #fff; font-size: 12px; padding: 2px 6px; border-radius: 4px; border: 1px solid #fff; font-family: 'Roboto', sans-serif; }
-        .upgrade-btn { margin-top: 5px; background: #5D9E44; border: none; border-bottom: 3px solid #3e6b2c; border-radius: 4px; color: #fff; font-size: 10px; padding: 4px 8px; cursor: pointer; width: 100%; font-family: 'Roboto', sans-serif; }
-        .upgrade-btn:active { transform: translateY(2px); border-bottom-width: 0; }
-        .upgrade-btn.cant-afford { filter: grayscale(1); opacity: 0.6; }
-
-        .play-btn-container { padding: 20px; background: rgba(0,0,0,0.4); display: flex; justify-content: center; flex-shrink: 0; gap: 10px; }
-        .btn-main { background: #ffce00; color: #5c3a00; font-size: 20px; padding: 15px 20px; border: none; border-bottom: 6px solid #b38b00; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); flex: 1; }
-        .btn-blue { background: #4789CE; color: #fff; border-bottom-color: #2a5a8a; }
-        .btn-main:active { transform: translateY(4px); border-bottom-width: 2px; box-shadow: none; }
-
-        /* --- HYBRID LOBBY --- */
-        #mp-lobby {
-            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: #111; z-index: 400; flex-direction: column; padding: 10px; color: #fff; overflow-y: auto;
-        }
+        #game-view { display:none; width:100%; height:100%; position:relative; }
+        canvas { display:block; width:100%; height:100%; background:#5D9E44; }
+        #hud { position:absolute; bottom:0; left:0; width:100%; height:200px; background:var(--hud-bg); border-top:4px solid #1a120d; display:flex; flex-direction:column; padding:10px; z-index:100; }
+        .hud-top { height:30px; display:flex; align-items:center; margin-bottom:8px; }
+        .elixir-bar { flex:1; height:24px; background:#111; border:2px solid #555; border-radius:12px; position:relative; overflow:hidden; }
+        .elixir-fill { height:100%; width:50%; background:linear-gradient(90deg,#d946ef,#a855f7); transition:width 0.1s linear; }
+        .elixir-txt { position:absolute; right:10px; top:2px; font-family:'Roboto',sans-serif; color:#fff; font-size:14px; }
+        .hud-bottom { flex:1; display:flex; gap:10px; height:110px; min-height:110px; }
+        .next-card-slot { width:60px; background:rgba(0,0,0,0.2); border:1px dashed #777; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+        .next-lbl { font-size:10px; color:#aaa; margin-bottom:4px; font-family:sans-serif; }
+        #card-hand { flex:1; display:flex; gap:8px; height:100%; }
         
-        .qr-container { background: #fff; padding: 10px; border-radius: 8px; margin: 10px auto; display: inline-block; }
-        #qrcode img { display: block; margin: 0 auto; }
-        
-        #camera-container {
-            width: 100%; max-width: 300px; height: 250px; background: #000; margin: 10px auto; 
-            position: relative; border: 2px solid #ffce00; border-radius: 8px; overflow: hidden;
-        }
-        video { width: 100%; height: 100%; object-fit: cover; }
-        
-        .status-txt { text-align: center; color: #aaa; font-size: 14px; margin: 10px 0; font-family: 'Roboto'; }
-        .step-title { color: #ffce00; font-size: 20px; text-align: center; margin-bottom: 5px; }
-        
-        /* Fallback Text Area */
-        .fallback-area { width: 100%; max-width: 320px; margin: 10px auto; background: #222; padding: 10px; border-radius: 8px; display: none; }
-        .fallback-area.visible { display: block; }
-        textarea { width: 100%; height: 60px; background: #000; border: 1px solid #555; color: #aaa; font-size: 10px; resize: none; }
-        
-        .toggle-link { color: #4789CE; text-decoration: underline; font-size: 12px; font-family: sans-serif; cursor: pointer; text-align: center; display: block; margin-top: 5px; }
+        .card { flex:1; height:100%; background:#7a8c99; border:2px solid #222; border-radius:6px; position:relative; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; box-shadow:0 4px 0 #151515; transition:transform 0.1s; }
+        .card:active { transform:translateY(4px); box-shadow:none; }
+        .card.selected { transform:translateY(-12px); border-color:#fff; z-index:10; box-shadow:0 10px 20px rgba(0,0,0,0.5); }
+        .card.disabled { filter:grayscale(1); opacity:0.6; }
+        .card.common { background:#8d99ae; } .card.rare { background:#ffbe4d; border-color:#8a5a00; } .card.epic { background:#d000ff; border-color:#4a005c; }
+        .cost-bubble { position:absolute; top:-6px; left:-6px; width:22px; height:22px; background:#d946ef; border:2px solid #fff; border-radius:50%; display:flex; justify-content:center; align-items:center; color:#fff; font-size:12px; font-family:'Roboto',sans-serif; }
+        .c-icon { font-size:32px; filter:drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
+        .c-name { font-size:9px; color:#fff; margin-top:2px; font-family:'Roboto',sans-serif; text-transform:uppercase; }
+        .c-lvl { position:absolute; bottom:2px; right:4px; font-size:10px; color:#fff; font-family:'Roboto',sans-serif; text-shadow:1px 1px 0 #000; }
 
-        /* --- GAME VIEW --- */
-        #game-view { display: none; width: 100%; height: 100%; position: relative; }
-        canvas { display: block; width: 100%; height: 100%; background: #5D9E44; }
-        
-        #hud {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 200px;
-            background: var(--hud-bg); border-top: 4px solid #1a120d;
-            display: flex; flex-direction: column; padding: 10px; z-index: 100;
-        }
-        .hud-top { height: 30px; display: flex; align-items: center; margin-bottom: 8px; }
-        .elixir-bar { flex: 1; height: 24px; background: #111; border: 2px solid #555; border-radius: 12px; position: relative; overflow: hidden; }
-        .elixir-fill { height: 100%; width: 50%; background: linear-gradient(90deg, #d946ef, #a855f7); transition: width 0.1s linear; }
-        .elixir-txt { position: absolute; right: 10px; top: 2px; font-family: 'Roboto', sans-serif; color: #fff; font-size: 14px; }
-        .hud-bottom { flex: 1; display: flex; gap: 10px; height: 110px; min-height: 110px; }
-        .next-card-slot { width: 60px; background: rgba(0,0,0,0.2); border: 1px dashed #777; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .next-lbl { font-size: 10px; color: #aaa; margin-bottom: 4px; font-family: sans-serif; }
-        #card-hand { flex: 1; display: flex; gap: 8px; height: 100%; }
-        
-        .card { flex: 1; height: 100%; background: #7a8c99; border: 2px solid #222; border-radius: 6px; position: relative; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 0 #151515; transition: transform 0.1s; }
-        .card:active { transform: translateY(4px); box-shadow: none; }
-        .card.selected { transform: translateY(-12px); border-color: #fff; z-index: 10; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
-        .card.disabled { filter: grayscale(1); opacity: 0.6; }
-        .card.common { background: #8d99ae; } .card.rare { background: #ffbe4d; border-color: #8a5a00; } .card.epic { background: #d000ff; border-color: #4a005c; }
-        .cost-bubble { position: absolute; top: -6px; left: -6px; width: 22px; height: 22px; background: #d946ef; border: 2px solid #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: #fff; font-size: 12px; font-family: 'Roboto', sans-serif; box-shadow: 0 2px 2px rgba(0,0,0,0.5); }
-        .c-icon { font-size: 32px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
-        .c-name { font-size: 9px; color: #fff; margin-top: 2px; font-family: 'Roboto', sans-serif; text-transform: uppercase; }
-        .c-lvl { position: absolute; bottom: 2px; right: 4px; font-size: 10px; color: #fff; font-family:'Roboto',sans-serif; text-shadow:1px 1px 0 #000; }
-
-        /* Result Screen */
-        #result-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 500; display: none; flex-direction: column; align-items: center; justify-content: center; }
-        .result-txt { font-size: 50px; color: #fff; margin-bottom: 20px; }
-        .crowns-row { display: flex; gap: 15px; margin-bottom: 30px; font-size: 50px; filter: grayscale(1); opacity: 0.3; }
-        .crown-active { filter: grayscale(0); opacity: 1; text-shadow: 0 0 20px gold; }
-        .hidden { display: none !important; }
+        #result-screen { position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:500; display:none; flex-direction:column; align-items:center; justify-content:center; }
+        .result-txt { font-size:50px; color:#fff; margin-bottom:20px; }
+        .crowns-row { display:flex; gap:15px; margin-bottom:30px; font-size:50px; filter:grayscale(1); opacity:0.3; }
+        .crown-active { filter:grayscale(0); opacity:1; text-shadow:0 0 20px gold; }
+        .hidden { display:none !important; }
     </style>
 </head>
 <body>
 
 <div id="app">
-    <!-- 1. MENU -->
     <div id="menu-layer">
         <div class="menu-header">
             <div class="game-title">CLASH<br>ROYALE</div>
-            <div class="player-stats">
-                <div class="stat-badge">💰 <span id="gold-display">1000</span></div>
-                <div class="stat-badge">🏆 0</div>
-            </div>
+            <div class="player-stats"><div class="stat-badge">💰 <span id="gold-display">1000</span></div><div class="stat-badge">🏆 0</div></div>
         </div>
         <div class="collection-grid" id="collection-grid"></div>
         <div class="play-btn-container">
@@ -146,29 +86,18 @@
         </div>
     </div>
 
-    <!-- 2. HYBRID LOBBY -->
     <div id="mp-lobby">
-        <div class="menu-header" style="padding:10px; background:none">
-            <div class="game-title" style="font-size:24px;">CONNECTION</div>
-        </div>
-
-        <!-- Role Select -->
+        <div class="menu-header" style="padding:10px; background:none"><div class="game-title" style="font-size:24px;">CONNECTION</div></div>
+        
         <div id="role-select" style="display:flex; gap:10px; margin-top:20px;">
             <button class="btn-main btn-blue" onclick="LOBBY_UI.startHost()">HOST GAME</button>
             <button class="btn-main" onclick="LOBBY_UI.startJoin()">JOIN GAME</button>
         </div>
 
-        <!-- GENERATE AREA (For Sender) -->
         <div id="gen-area" class="hidden" style="text-align:center;">
             <div class="step-title" id="gen-title">SCAN THIS</div>
-            
-            <div class="qr-container">
-                <div id="qrcode"></div>
-            </div>
-            
-            <div class="status-txt" id="gen-desc">Generating code...</div>
-
-            <!-- Fallback Copy -->
+            <div class="qr-container"><div id="qrcode"></div></div>
+            <div class="status-txt" id="gen-desc">Generating...</div>
             <div class="toggle-link" onclick="LOBBY_UI.toggleFallback('gen-fallback')">QR not working? Click here.</div>
             <div id="gen-fallback" class="fallback-area">
                 <textarea id="my-code-text" readonly onclick="this.select()"></textarea>
@@ -176,41 +105,27 @@
             </div>
         </div>
 
-        <!-- SCAN AREA (For Receiver) -->
         <div id="scan-area" class="hidden">
-            <div class="step-title">SCAN OPPONENT</div>
-            
-            <div id="camera-container">
-                <video id="scan-video" playsinline></video>
-            </div>
+            <div class="step-title" style="margin-top:20px">SCAN OPPONENT</div>
+            <div id="camera-container"><video id="scan-video" playsinline></video></div>
             <div class="status-txt">Point camera at code</div>
-
-            <!-- Fallback Paste -->
             <div class="toggle-link" onclick="LOBBY_UI.toggleFallback('scan-fallback')">Camera broken? Click here.</div>
             <div id="scan-fallback" class="fallback-area">
                 <textarea id="their-code-text" placeholder="Paste friend's code here..."></textarea>
                 <button class="btn-main" style="font-size:12px; padding:8px" onclick="LOBBY_UI.manualConnect()">CONNECT</button>
             </div>
         </div>
-
         <button class="upgrade-btn" style="background:#444; margin-top:20px; padding:15px; font-size:14px" onclick="LOBBY_UI.close()">CANCEL</button>
     </div>
 
-    <!-- 3. GAME -->
     <div id="game-view">
         <canvas id="game-canvas"></canvas>
         <div id="hud">
-            <div class="hud-top">
-                <div class="elixir-bar"><div id="elixir-fill" class="elixir-fill"></div><div id="elixir-val" class="elixir-txt">5</div></div>
-            </div>
-            <div class="hud-bottom">
-                <div class="next-card-slot"><span class="next-lbl">NEXT</span><div id="next-icon" style="font-size:24px">?</div></div>
-                <div id="card-hand"></div>
-            </div>
+            <div class="hud-top"><div class="elixir-bar"><div id="elixir-fill" class="elixir-fill"></div><div id="elixir-val" class="elixir-txt">5</div></div></div>
+            <div class="hud-bottom"><div class="next-card-slot"><span class="next-lbl">NEXT</span><div id="next-icon" style="font-size:24px">?</div></div><div id="card-hand"></div></div>
         </div>
     </div>
 
-    <!-- 4. RESULT -->
     <div id="result-screen">
         <div id="res-title" class="result-txt">VICTORY!</div>
         <div class="crowns-row"><span id="c1">👑</span><span id="c2">👑</span><span id="c3">👑</span></div>
@@ -218,12 +133,10 @@
         <button class="btn-main" onclick="APP.returnToMenu()">OK</button>
     </div>
 </div>
-
 <canvas id="scan-canvas" style="display:none"></canvas>
 
 <script>
-/** CLASH ROYALE: HYBRID EDITION */
-
+/** CLASH ROYALE: FIXED VIEW */
 const CONFIG={FPS:60,ELIXIR_RATE:2.8,HUD_HEIGHT:200,COLORS:{BLUE:'#4789CE',RED:'#EB4847',GRASS:'#4BA636',RIVER:'#3FA7D6',BRIDGE:'#8F7156'}};
 const PLAYER={gold:1000,cards:{KNIGHT:{level:1},ARCHER:{level:1},GIANT:{level:1},SKELLIES:{level:1},FIREBALL:{level:1},ARROWS:{level:1},WIZARD:{level:1},PEKKA:{level:1}}};
 const BASE_CARDS={
@@ -238,24 +151,15 @@ const BASE_CARDS={
 };
 const DECK_KEYS=Object.keys(BASE_CARDS);
 
-// --- NETWORK (Hybrid) ---
+// --- NETWORK ---
 const MP = {
-    peer: null, channel: null, isHost: false, active: false,
+    peer: null, channel: null, isHost: false, active: false, genTimer: null,
     init: function(isHost) {
         this.isHost = isHost; this.active = true;
         const config = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
         this.peer = new RTCPeerConnection(config);
-
-        this.peer.onicecandidate = (e) => {
-            if (!e.candidate) {
-                // Done gathering. Compress and show.
-                const data = JSON.stringify(this.peer.localDescription);
-                const compressed = LZString.compressToBase64(data);
-                LOBBY_UI.showCode(compressed, isHost ? "HOST CODE" : "GUEST CODE");
-                if(isHost) LOBBY_UI.startScanning();
-            }
-        };
-
+        this.genTimer = setTimeout(() => { this.finalizeCode(); }, 1500);
+        this.peer.onicecandidate = (e) => { if (!e.candidate) { clearTimeout(this.genTimer); this.finalizeCode(); } };
         if (isHost) {
             this.channel = this.peer.createDataChannel("game");
             this.setupChannel();
@@ -263,6 +167,13 @@ const MP = {
         } else {
             this.peer.ondatachannel = (e) => { this.channel = e.channel; this.setupChannel(); };
         }
+    },
+    finalizeCode: function() {
+        if(!this.peer.localDescription) return;
+        const data = JSON.stringify(this.peer.localDescription);
+        const compressed = LZString.compressToBase64(data);
+        LOBBY_UI.showCode(compressed, this.isHost ? "HOST CODE" : "GUEST CODE");
+        if(this.isHost) LOBBY_UI.startScanning();
     },
     setupChannel: function() {
         this.channel.onopen = () => { LOBBY_UI.close(); APP.startBattle(this.isHost ? 'host' : 'guest'); };
@@ -288,71 +199,45 @@ const MP = {
 const LOBBY_UI = {
     stream: null, scanning: false,
     open: function() {
-        if(location.protocol !== 'https:' && location.hostname !== 'localhost') {
-            alert("WARNING: Camera features require HTTPS. If QR fails, use Copy/Paste below.");
-        }
         document.getElementById('mp-lobby').style.display = 'flex';
         document.getElementById('role-select').classList.remove('hidden');
         document.getElementById('gen-area').classList.add('hidden');
         document.getElementById('scan-area').classList.add('hidden');
+        document.getElementById('gen-desc').innerText = "Generating...";
+        document.getElementById('qrcode').innerHTML = "";
     },
-    close: function() {
-        this.stopScanning();
-        if(MP.peer) { MP.peer.close(); MP.peer=null; MP.active=false; }
-        document.getElementById('mp-lobby').style.display = 'none';
-    },
-    startHost: function() { document.getElementById('role-select').classList.add('hidden'); MP.init(true); },
+    close: function() { this.stopScanning(); if(MP.peer) { MP.peer.close(); MP.peer=null; MP.active=false; } document.getElementById('mp-lobby').style.display = 'none'; },
+    startHost: function() { document.getElementById('role-select').classList.add('hidden'); document.getElementById('gen-area').classList.remove('hidden'); MP.init(true); },
     startJoin: function() { document.getElementById('role-select').classList.add('hidden'); MP.init(false); this.startScanning(); },
-    
     showCode: function(data, title) {
         document.getElementById('gen-area').classList.remove('hidden');
         document.getElementById('gen-title').innerText = title;
         document.getElementById('qrcode').innerHTML = "";
         document.getElementById('my-code-text').value = data;
-        
-        // Try to generate QR
         try {
-            new QRCode(document.getElementById("qrcode"), {
-                text: data, width: 180, height: 180,
-                colorDark : "#000000", colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.L // Low error correction = more data capacity
-            });
+            new QRCode(document.getElementById("qrcode"), { text: data, width: 180, height: 180, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.L });
             document.getElementById('gen-desc').innerText = "Scan this OR Copy Code below";
         } catch(e) {
             document.getElementById('qrcode').innerText = "Code too long for QR. Please use Copy/Paste.";
-            this.toggleFallback('gen-fallback'); // Auto open fallback
+            this.toggleFallback('gen-fallback');
         }
     },
     toggleFallback: function(id) { document.getElementById(id).classList.toggle('visible'); },
-    copyCode: function() {
-        document.getElementById('my-code-text').select();
-        document.execCommand('copy');
-        alert("Code copied!");
-    },
+    copyCode: function() { document.getElementById('my-code-text').select(); document.execCommand('copy'); alert("Code copied!"); },
     manualConnect: function() {
         const val = document.getElementById('their-code-text').value;
-        if(val) {
-            if(MP.handleData(val)) {
-                this.stopScanning();
-                document.getElementById('scan-area').classList.add('hidden');
-            }
-        }
+        if(val && MP.handleData(val)) this.stopScanning();
     },
     startScanning: function() {
         document.getElementById('scan-area').classList.remove('hidden');
-        const v = document.getElementById('scan-video');
-        const c = document.getElementById('scan-canvas');
-        const ctx = c.getContext('2d');
-        
+        const v = document.getElementById('scan-video'), c = document.getElementById('scan-canvas'), ctx = c.getContext('2d');
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(s => {
             this.stream = s; v.srcObject = s; v.setAttribute("playsinline", true); v.play();
             this.scanning = true; requestAnimationFrame(tick);
         }).catch(e => {
-            console.log("Cam Fail", e);
-            document.getElementById('camera-container').innerHTML = "<div style='color:#fff;padding:20px'>Camera not found or denied.<br>Use Paste Code below.</div>";
+            document.getElementById('camera-container').innerHTML = "<div style='color:#fff;padding:20px;text-align:center;padding-top:80px'>Camera Denied.<br>Use Paste Code below.</div>";
             this.toggleFallback('scan-fallback');
         });
-
         const tick = () => {
             if(!this.scanning) return;
             if(v.readyState === v.HAVE_ENOUGH_DATA) {
@@ -360,20 +245,17 @@ const LOBBY_UI = {
                 ctx.drawImage(v,0,0,c.width,c.height);
                 const idata = ctx.getImageData(0,0,c.width,c.height);
                 const code = jsQR(idata.data, idata.width, idata.height, { inversionAttempts: "dontInvert" });
-                if(code) {
-                    if(MP.handleData(code.data)) this.stopScanning();
+                if(code && MP.handleData(code.data)) {
+                    if(!MP.isHost) { this.stopScanning(); document.getElementById('scan-area').classList.add('hidden'); }
+                    else document.querySelector('#scan-area .status-txt').innerText = "Code Found! Connecting...";
                 }
             }
             requestAnimationFrame(tick);
         }
     },
-    stopScanning: function() {
-        this.scanning = false;
-        if(this.stream) { this.stream.getTracks().forEach(t => t.stop()); this.stream=null; }
-    }
+    stopScanning: function() { this.scanning = false; if(this.stream) { this.stream.getTracks().forEach(t => t.stop()); this.stream=null; } }
 };
 
-// --- APP & GAME (Unchanged Logic) ---
 const APP = {
     game: null,
     init: function() { this.renderMenu(); },
@@ -462,14 +344,10 @@ class Game {
         [...this.rT,...this.bT,...this.units].forEach(e=>e.update(dt,e.team==='blue'?aR:aB,this));
         this.projs.forEach(p=>p.update(dt)); this.effs.forEach(e=>e.update(dt)); this.floats.forEach(f=>f.update(dt));
         this.units=this.units.filter(u=>!u.dead); this.projs=this.projs.filter(p=>p.act); this.effs=this.effs.filter(e=>e.act); this.floats=this.floats.filter(f=>f.act);
-        
         this.chkC(this.rT,'blue'); this.chkC(this.bT,'red');
         if(this.rT[2].dead || this.bT[2].dead) { 
-            const blueWin=this.rT[2].dead; 
-            let iWon = false;
-            if(this.mode === 'single') iWon = blueWin;
-            else if(this.isGuest) iWon = !blueWin; // I am Red
-            else iWon = blueWin; // I am Host (Blue)
+            const blueWin=this.rT[2].dead; let iWon=false;
+            if(this.mode==='single') iWon=blueWin; else if(this.isGuest) iWon=!blueWin; else iWon=blueWin;
             this.end(iWon?'VICTORY!':'DEFEAT!', iWon?'#4f4':'#f44');
         }
     }
@@ -477,7 +355,13 @@ class Game {
     
     draw(){
         this.ctx.save();
-        if(this.isGuest){ this.ctx.translate(this.width,this.height); this.ctx.rotate(Math.PI); this.ctx.translate(0,-CONFIG.HUD_HEIGHT); }
+        if(this.isGuest){ 
+            // Fix: Rotate around center of PLAY AREA, not center of SCREEN
+            this.ctx.translate(this.width/2, this.pH/2); 
+            this.ctx.rotate(Math.PI); 
+            this.ctx.translate(-this.width/2, -this.pH/2); 
+        }
+
         this.ctx.fillStyle=CONFIG.COLORS.GRASS; this.ctx.fillRect(0,0,this.width,this.height);
         this.ctx.fillStyle=CONFIG.COLORS.RIVER; this.ctx.fillRect(0,this.riverY-30,this.width,60);
         this.ctx.fillStyle=CONFIG.COLORS.BRIDGE; const db=(x)=>{this.ctx.fillRect(x-30,this.riverY-35,60,70);this.ctx.strokeStyle='#4a3b2b';this.ctx.lineWidth=2;for(let i=0;i<=70;i+=10){this.ctx.beginPath();this.ctx.moveTo(x-30,this.riverY-35+i);this.ctx.lineTo(x+30,this.riverY-35+i);this.ctx.stroke();}}; db(this.bLX); db(this.bRX);
@@ -486,8 +370,10 @@ class Game {
         if(this.sel!==-1){
             const d=BASE_CARDS[this.hand[this.sel]]; this.ctx.fillStyle='rgba(255,255,255,0.1)';
             if(d.type==='unit'){ 
-                const ys=this.isGuest?0:this.riverY+30, h=this.isGuest?this.riverY-30:this.height-(this.riverY+30); 
-                this.ctx.fillRect(0,ys,this.width,h); 
+                // Draw selection highlight in logical coordinates
+                const yStart = this.isGuest ? 0 : this.riverY+30; 
+                const hZone = this.isGuest ? this.riverY-30 : this.pH - (this.riverY+30);
+                this.ctx.fillRect(0, yStart, this.width, hZone);
                 const lineY = this.isGuest ? this.riverY-30 : this.riverY+30;
                 this.ctx.strokeStyle='#fff'; this.ctx.setLineDash([5,5]); this.ctx.lineWidth=2;
                 this.ctx.beginPath(); this.ctx.moveTo(0, lineY); this.ctx.lineTo(this.width, lineY); this.ctx.stroke(); this.ctx.setLineDash([]);
@@ -501,7 +387,11 @@ class Game {
         const h=(e)=>{
             if(this.go||this.sel===-1)return; e.preventDefault(); const r=this.canvas.getBoundingClientRect();
             let x=(e.touches?e.touches[0].clientX:e.clientX)-r.left, y=(e.touches?e.touches[0].clientY:e.clientY)-r.top;
-            if(this.isGuest){x=this.width-x; y=this.height-y;}
+            if(this.isGuest){
+                // Fix: Invert Y relative to Play Height (pH), not total Height
+                x = this.width - x;
+                y = this.pH - y;
+            }
             const k=this.hand[this.sel], d=BASE_CARDS[k], tm=this.isGuest?'red':'blue';
             let ok=d.type==='spell';
             if(!ok){if(tm==='blue'&&y>this.riverY+30)ok=true; if(tm==='red'&&y<this.riverY-30)ok=true;}
@@ -536,7 +426,5 @@ window.onload=()=>APP.init();
 </script>
 </body>
 </html>
-
-
 
 
