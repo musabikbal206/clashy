@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CR: Synced Multiplayer</title>
+    <title>Clash Royale: View Fixed</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -13,489 +13,421 @@
         @import url('https://fonts.googleapis.com/css2?family=Titan+One&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@700;900&display=swap');
 
-        :root { --blue:#4789CE; --red:#EB4847; --hud-bg:#2b2018; }
-        * { box-sizing:border-box; touch-action:none; user-select:none; font-family:'Titan One',cursive; }
-        body { margin:0; background:#111; overflow:hidden; width:100%; height:100%; }
-        #app { position:relative; width:100%; height:100%; max-width:550px; margin:0 auto; background:#333; box-shadow:0 0 50px #000; overflow:hidden; }
+        :root { --blue:#4789CE; --red:#EB4847; --hud-bg:#2b2018; --gold:#ffce00; }
+        * { box-sizing:border-box; touch-action:none; user-select:none; -webkit-user-select:none; font-family:'Titan One',cursive; }
+        body,html { margin:0; padding:0; width:100%; height:100%; background:#111; overflow:hidden; }
+        #app { position:relative; width:100%; height:100%; max-width:550px; margin:0 auto; background:#333; overflow:hidden; box-shadow:0 0 50px #000; }
 
-        /* Status Bar */
-        #status-bar { position:absolute; top:0; left:0; width:100%; height:20px; background:#000; color:#888; font-size:10px; text-align:center; line-height:20px; z-index:1000; font-family:sans-serif; }
-        .connected { color: #4f4 !important; font-weight:bold; }
-        
-        /* Menu */
-        #menu-layer { position:absolute; top:0; left:0; width:100%; height:100%; background:linear-gradient(135deg,#1f3b73,#162447); z-index:300; display:flex; flex-direction:column; }
-        .menu-header { padding:30px; text-align:center; }
-        .game-title { font-size:40px; color:#ffce00; text-shadow:0 4px 0 #b35900; }
-        .btn-container { padding:20px; display:flex; gap:10px; margin-top:auto; background:rgba(0,0,0,0.4); }
-        .btn { flex:1; padding:15px; border:none; border-radius:10px; font-size:18px; cursor:pointer; border-bottom:5px solid rgba(0,0,0,0.3); }
-        .btn-sol { background:#ffce00; color:#5c3a00; }
-        .btn-mul { background:#4789CE; color:#fff; }
+        #menu-layer { position:absolute; top:0; left:0; width:100%; height:100%; background:linear-gradient(135deg,#1f3b73,#162447); z-index:300; display:flex; flex-direction:column; overflow-y:auto; }
+        .menu-header { padding:20px; text-align:center; background:rgba(0,0,0,0.2); flex-shrink:0; }
+        .game-title { font-size:40px; color:#ffce00; text-shadow:0 4px 0 #b35900; margin:0; line-height:1; }
+        .player-stats { margin-top:10px; color:#fff; font-family:'Roboto',sans-serif; font-size:16px; display:flex; justify-content:center; gap:20px; }
+        .collection-grid { padding:15px; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; overflow-y:auto; flex:1; }
+        .collection-card { background:#7a8c99; border:3px solid #222; border-radius:8px; display:flex; flex-direction:column; align-items:center; padding:10px 5px; position:relative; }
+        .collection-card.rare { background:#ffbe4d; border-color:#8a5a00; } .collection-card.epic { background:#d000ff; border-color:#4a005c; }
+        .c-lvl-badge { position:absolute; top:-5px; left:-5px; background:#222; color:#fff; font-size:12px; padding:2px 6px; border-radius:4px; font-family:'Roboto',sans-serif; }
+        .upgrade-btn { margin-top:5px; background:#5D9E44; border:none; border-bottom:3px solid #3e6b2c; border-radius:4px; color:#fff; font-size:10px; padding:4px 8px; width:100%; font-family:'Roboto',sans-serif; }
+        .play-btn-container { padding:20px; background:rgba(0,0,0,0.4); display:flex; justify-content:center; gap:10px; }
+        .btn-main { background:#ffce00; color:#5c3a00; font-size:20px; padding:15px 20px; border:none; border-bottom:6px solid #b38b00; border-radius:12px; flex:1; }
+        .btn-blue { background:#4789CE; color:#fff; border-bottom-color:#2a5a8a; }
 
-        /* Lobby */
-        #lobby { display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:#111; z-index:400; flex-direction:column; padding:10px; color:#fff; }
-        .qr-box { background:#fff; padding:10px; border-radius:8px; margin:10px auto; display:inline-block; }
-        .cam-box { width:100%; max-width:300px; height:220px; background:#000; margin:10px auto; border:2px solid #ffce00; position:relative; }
+        #mp-lobby { display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:#111; z-index:400; flex-direction:column; padding:10px; color:#fff; overflow-y:auto; }
+        .qr-container { background:#fff; padding:10px; border-radius:8px; margin:10px auto; display:inline-block; }
+        #camera-container { width:100%; max-width:280px; height:220px; background:#000; margin:10px auto; position:relative; border:2px solid #ffce00; border-radius:8px; overflow:hidden; }
         video { width:100%; height:100%; object-fit:cover; }
-        textarea { width:100%; height:60px; background:#222; color:#fff; border:1px solid #555; }
+        .status-txt { text-align:center; color:#aaa; font-size:14px; margin:5px 0; font-family:'Roboto'; }
+        .step-title { color:#ffce00; font-size:18px; text-align:center; margin-bottom:5px; }
+        .fallback-area { width:100%; max-width:320px; margin:10px auto; background:#222; padding:10px; border-radius:8px; display:none; }
+        .fallback-area.visible { display:block; }
+        textarea { width:100%; height:50px; background:#000; border:1px solid #555; color:#aaa; font-size:10px; resize:none; }
+        .toggle-link { color:#4789CE; text-decoration:underline; font-size:12px; font-family:sans-serif; cursor:pointer; text-align:center; display:block; margin-top:5px; }
 
-        /* Game */
         #game-view { display:none; width:100%; height:100%; position:relative; }
         canvas { display:block; width:100%; height:100%; background:#5D9E44; }
+        #hud { position:absolute; bottom:0; left:0; width:100%; height:200px; background:var(--hud-bg); border-top:4px solid #1a120d; display:flex; flex-direction:column; padding:10px; z-index:100; }
+        .hud-top { height:30px; display:flex; align-items:center; margin-bottom:8px; }
+        .elixir-bar { flex:1; height:24px; background:#111; border:2px solid #555; border-radius:12px; position:relative; overflow:hidden; }
+        .elixir-fill { height:100%; width:50%; background:linear-gradient(90deg,#d946ef,#a855f7); transition:width 0.1s linear; }
+        .elixir-txt { position:absolute; right:10px; top:2px; font-family:'Roboto',sans-serif; color:#fff; font-size:14px; }
+        .hud-bottom { flex:1; display:flex; gap:10px; height:110px; min-height:110px; }
+        .next-card-slot { width:60px; background:rgba(0,0,0,0.2); border:1px dashed #777; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+        .next-lbl { font-size:10px; color:#aaa; margin-bottom:4px; font-family:sans-serif; }
+        #card-hand { flex:1; display:flex; gap:8px; height:100%; }
         
-        /* HUD */
-        #hud { position:absolute; bottom:0; left:0; width:100%; height:200px; background:var(--hud-bg); display:flex; flex-direction:column; padding:10px; border-top:4px solid #1a120d; }
-        .hud-top { height:30px; display:flex; align-items:center; margin-bottom:5px; }
-        .elixir { flex:1; height:20px; background:#111; border:2px solid #555; border-radius:10px; position:relative; }
-        .elixir-fill { height:100%; width:50%; background:#d946ef; transition:width 0.1s linear; }
-        .cards { flex:1; display:flex; gap:5px; }
-        .card { flex:1; background:#7a8c99; border:2px solid #222; border-radius:6px; position:relative; display:flex; align-items:center; justify-content:center; flex-direction:column; cursor:pointer; }
-        .card.selected { transform:translateY(-10px); border-color:#fff; z-index:10; }
-        .card.disabled { filter:grayscale(1); opacity:0.5; }
-        
-        /* Result */
-        #result { position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:500; display:none; flex-direction:column; align-items:center; justify-content:center; color:#fff; }
+        .card { flex:1; height:100%; background:#7a8c99; border:2px solid #222; border-radius:6px; position:relative; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; box-shadow:0 4px 0 #151515; transition:transform 0.1s; }
+        .card:active { transform:translateY(4px); box-shadow:none; }
+        .card.selected { transform:translateY(-12px); border-color:#fff; z-index:10; box-shadow:0 10px 20px rgba(0,0,0,0.5); }
+        .card.disabled { filter:grayscale(1); opacity:0.6; }
+        .card.common { background:#8d99ae; } .card.rare { background:#ffbe4d; border-color:#8a5a00; } .card.epic { background:#d000ff; border-color:#4a005c; }
+        .cost-bubble { position:absolute; top:-6px; left:-6px; width:22px; height:22px; background:#d946ef; border:2px solid #fff; border-radius:50%; display:flex; justify-content:center; align-items:center; color:#fff; font-size:12px; font-family:'Roboto',sans-serif; }
+        .c-icon { font-size:32px; filter:drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
+        .c-name { font-size:9px; color:#fff; margin-top:2px; font-family:'Roboto',sans-serif; text-transform:uppercase; }
+        .c-lvl { position:absolute; bottom:2px; right:4px; font-size:10px; color:#fff; font-family:'Roboto',sans-serif; text-shadow:1px 1px 0 #000; }
+
+        #result-screen { position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:500; display:none; flex-direction:column; align-items:center; justify-content:center; }
+        .result-txt { font-size:50px; color:#fff; margin-bottom:20px; }
+        .crowns-row { display:flex; gap:15px; margin-bottom:30px; font-size:50px; filter:grayscale(1); opacity:0.3; }
+        .crown-active { filter:grayscale(0); opacity:1; text-shadow:0 0 20px gold; }
         .hidden { display:none !important; }
     </style>
 </head>
 <body>
 
 <div id="app">
-    <div id="status-bar">Offline</div>
-
     <div id="menu-layer">
         <div class="menu-header">
             <div class="game-title">CLASH<br>ROYALE</div>
-            <div style="color:#aaa; font-size:12px; margin-top:5px">Synced Edition</div>
+            <div class="player-stats"><div class="stat-badge">💰 <span id="gold-display">1000</span></div><div class="stat-badge">🏆 0</div></div>
         </div>
-        <div class="btn-container">
-            <button class="btn btn-sol" onclick="APP.start('single')">SOLO</button>
-            <button class="btn btn-mul" onclick="LOBBY.open()">VS FRIEND</button>
+        <div class="collection-grid" id="collection-grid"></div>
+        <div class="play-btn-container">
+            <button class="btn-main" onclick="APP.startBattle('single')">SOLO</button>
+            <button class="btn-main btn-blue" onclick="LOBBY_UI.open()">VS FRIEND</button>
         </div>
     </div>
 
-    <div id="lobby">
-        <div class="menu-header" style="padding:10px"><div class="game-title" style="font-size:20px">CONNECT</div></div>
+    <div id="mp-lobby">
+        <div class="menu-header" style="padding:10px; background:none"><div class="game-title" style="font-size:24px;">CONNECTION</div></div>
         
-        <div id="setup-btns" style="display:flex; gap:10px; padding:10px">
-            <button class="btn btn-mul" onclick="LOBBY.host()">I AM HOST</button>
-            <button class="btn btn-sol" onclick="LOBBY.join()">I AM GUEST</button>
+        <div id="role-select" style="display:flex; gap:10px; margin-top:20px;">
+            <button class="btn-main btn-blue" onclick="LOBBY_UI.startHost()">HOST GAME</button>
+            <button class="btn-main" onclick="LOBBY_UI.startJoin()">JOIN GAME</button>
         </div>
 
-        <div id="conn-ui" class="hidden" style="text-align:center">
-            <div id="step-txt" style="color:#ffce00; font-size:18px; margin:5px">Generating...</div>
-            
-            <div id="qr-display" class="hidden">
-                <div class="qr-box"><div id="qrcode"></div></div>
-                <div style="font-size:10px; color:#aaa">Scan this on other device</div>
-                <button class="btn btn-sol" style="padding:5px; font-size:12px; margin-top:5px" onclick="LOBBY.copy()">Copy Code</button>
-                <textarea id="copy-target" style="opacity:0; height:1px"></textarea>
-            </div>
-
-            <div id="cam-display" class="hidden" style="margin-top:10px">
-                <div class="cam-box"><video id="vid" playsinline></video></div>
-                <div style="font-size:10px; color:#aaa">Scan opponent's code</div>
-                <button class="btn btn-mul" style="padding:5px; font-size:12px; margin-top:5px" onclick="LOBBY.togglePaste()">Or Paste Code</button>
-                <div id="paste-area" class="hidden" style="margin-top:5px">
-                    <textarea id="paste-in" placeholder="Paste code here"></textarea>
-                    <button class="btn btn-sol" onclick="LOBBY.pasteConnect()">Connect</button>
-                </div>
+        <div id="gen-area" class="hidden" style="text-align:center;">
+            <div class="step-title" id="gen-title">SCAN THIS</div>
+            <div class="qr-container"><div id="qrcode"></div></div>
+            <div class="status-txt" id="gen-desc">Generating...</div>
+            <div class="toggle-link" onclick="LOBBY_UI.toggleFallback('gen-fallback')">QR not working? Click here.</div>
+            <div id="gen-fallback" class="fallback-area">
+                <textarea id="my-code-text" readonly onclick="this.select()"></textarea>
+                <button class="btn-main" style="font-size:12px; padding:8px" onclick="LOBBY_UI.copyCode()">COPY CODE</button>
             </div>
         </div>
-        <button class="btn" style="background:#333; color:#fff; margin-top:auto" onclick="LOBBY.close()">BACK</button>
+
+        <div id="scan-area" class="hidden">
+            <div class="step-title" style="margin-top:20px">SCAN OPPONENT</div>
+            <div id="camera-container"><video id="scan-video" playsinline></video></div>
+            <div class="status-txt">Point camera at code</div>
+            <div class="toggle-link" onclick="LOBBY_UI.toggleFallback('scan-fallback')">Camera broken? Click here.</div>
+            <div id="scan-fallback" class="fallback-area">
+                <textarea id="their-code-text" placeholder="Paste friend's code here..."></textarea>
+                <button class="btn-main" style="font-size:12px; padding:8px" onclick="LOBBY_UI.manualConnect()">CONNECT</button>
+            </div>
+        </div>
+        <button class="upgrade-btn" style="background:#444; margin-top:20px; padding:15px; font-size:14px" onclick="LOBBY_UI.close()">CANCEL</button>
     </div>
 
     <div id="game-view">
-        <canvas id="canvas"></canvas>
+        <canvas id="game-canvas"></canvas>
         <div id="hud">
-            <div class="hud-top">
-                <div style="color:#fff; font-size:12px; margin-right:5px">Elixir</div>
-                <div class="elixir"><div id="elixir-fill" class="elixir-fill"></div></div>
-                <div id="elixir-num" style="color:#fff; width:20px; text-align:right">5</div>
-            </div>
-            <div class="cards" id="hand"></div>
+            <div class="hud-top"><div class="elixir-bar"><div id="elixir-fill" class="elixir-fill"></div><div id="elixir-val" class="elixir-txt">5</div></div></div>
+            <div class="hud-bottom"><div class="next-card-slot"><span class="next-lbl">NEXT</span><div id="next-icon" style="font-size:24px">?</div></div><div id="card-hand"></div></div>
         </div>
     </div>
 
-    <div id="result">
-        <h1 id="res-txt">VICTORY</h1>
-        <button class="btn btn-sol" onclick="location.reload()">MENU</button>
+    <div id="result-screen">
+        <div id="res-title" class="result-txt">VICTORY!</div>
+        <div class="crowns-row"><span id="c1">👑</span><span id="c2">👑</span><span id="c3">👑</span></div>
+        <div style="color:#ffce00; margin-bottom:20px; font-family:'Roboto',sans-serif">+ 50 GOLD</div>
+        <button class="btn-main" onclick="APP.returnToMenu()">OK</button>
     </div>
 </div>
-<canvas id="qr-canv" style="display:none"></canvas>
+<canvas id="scan-canvas" style="display:none"></canvas>
 
 <script>
-/* --- CONFIG & DATA --- */
-const CFG = { W:0, H:0, PH:0, RY:0 }; // Width, Height, PlayHeight, RiverY
-const CARDS = {
-    KNIGHT: {cost:3, hp:900, dmg:90, speed:45, range:20, icon:'⚔️', type:'unit', count:1},
-    ARCHER: {cost:3, hp:300, dmg:60, speed:55, range:140, icon:'🏹', type:'unit', count:2},
-    GIANT:  {cost:5, hp:2600, dmg:150, speed:25, range:20, icon:'🗿', type:'unit', count:1},
-    SKEL:   {cost:1, hp:60, dmg:50, speed:70, range:20, icon:'💀', type:'unit', count:3},
-    FIRE:   {cost:4, dmg:350, radius:70, icon:'🔥', type:'spell', color:'#f40'},
-    ARRW:   {cost:3, dmg:120, radius:110, icon:'➴', type:'spell', color:'#fa0'},
-    WIZ:    {cost:5, hp:600, dmg:140, speed:45, range:120, icon:'🧙', type:'unit', count:1},
-    PEKKA:  {cost:7, hp:2200, dmg:450, speed:30, range:20, icon:'🤖', type:'unit', count:1}
+/** CLASH ROYALE: FIXED VIEW */
+const CONFIG={FPS:60,ELIXIR_RATE:2.8,HUD_HEIGHT:200,COLORS:{BLUE:'#4789CE',RED:'#EB4847',GRASS:'#4BA636',RIVER:'#3FA7D6',BRIDGE:'#8F7156'}};
+const PLAYER={gold:1000,cards:{KNIGHT:{level:1},ARCHER:{level:1},GIANT:{level:1},SKELLIES:{level:1},FIREBALL:{level:1},ARROWS:{level:1},WIZARD:{level:1},PEKKA:{level:1}}};
+const BASE_CARDS={
+    KNIGHT:{type:'unit',rarity:'common',name:'Knight',cost:3,hp:900,dmg:90,speed:45,range:20,count:1,icon:'⚔️'},
+    ARCHER:{type:'unit',rarity:'common',name:'Archers',cost:3,hp:300,dmg:60,speed:55,range:140,count:2,icon:'🏹'},
+    GIANT:{type:'unit',rarity:'rare',name:'Giant',cost:5,hp:2600,dmg:150,speed:25,range:20,count:1,icon:'🗿'},
+    SKELLIES:{type:'unit',rarity:'common',name:'Skel',cost:1,hp:60,dmg:50,speed:70,range:20,count:3,icon:'💀'},
+    FIREBALL:{type:'spell',rarity:'rare',name:'Fireball',cost:4,dmg:350,radius:70,icon:'🔥',color:'#ff5500'},
+    ARROWS:{type:'spell',rarity:'common',name:'Arrows',cost:3,dmg:120,radius:110,icon:'➴',color:'#ffcc00'},
+    WIZARD:{type:'unit',rarity:'rare',name:'Wizard',cost:5,hp:600,dmg:140,speed:45,range:120,count:1,icon:'🧙‍♂️'},
+    PEKKA:{type:'unit',rarity:'epic',name:'P.E.K.K.A',cost:7,hp:2200,dmg:450,speed:30,range:20,count:1,icon:'🤖'}
 };
-const DECK = Object.keys(CARDS);
+const DECK_KEYS=Object.keys(BASE_CARDS);
 
-/* --- NETWORK ENGINE (Robust) --- */
-const NET = {
-    peer: null, chan: null, role: null, active: false,
-    
-    init: function(role) {
-        this.role = role; this.active = true;
-        this.peer = new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});
-        
-        // ICE Handler
-        this.peer.onicecandidate = e => {
-            if(!e.candidate) {
-                const data = LZString.compressToBase64(JSON.stringify(this.peer.localDescription));
-                LOBBY.showQR(data);
-                if(role === 'host') LOBBY.startCam(); // Host waits for Answer
-            }
-        };
-
-        if(role === 'host') {
-            this.chan = this.peer.createDataChannel("game");
-            this.setupChan();
+// --- NETWORK ---
+const MP = {
+    peer: null, channel: null, isHost: false, active: false, genTimer: null,
+    init: function(isHost) {
+        this.isHost = isHost; this.active = true;
+        const config = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+        this.peer = new RTCPeerConnection(config);
+        this.genTimer = setTimeout(() => { this.finalizeCode(); }, 1500);
+        this.peer.onicecandidate = (e) => { if (!e.candidate) { clearTimeout(this.genTimer); this.finalizeCode(); } };
+        if (isHost) {
+            this.channel = this.peer.createDataChannel("game");
+            this.setupChannel();
             this.peer.createOffer().then(o => this.peer.setLocalDescription(o));
         } else {
-            this.peer.ondatachannel = e => { this.chan = e.channel; this.setupChan(); };
-            LOBBY.startCam(); // Guest waits for Offer
+            this.peer.ondatachannel = (e) => { this.channel = e.channel; this.setupChannel(); };
         }
     },
-
-    setupChan: function() {
-        this.chan.onopen = () => {
-            document.getElementById('status-bar').innerHTML = "🟢 CONNECTED";
-            document.getElementById('status-bar').className = "connected";
-            LOBBY.close();
-            APP.start(this.role);
-        };
-        this.chan.onmessage = e => {
-            if(GAME) GAME.onNetMessage(JSON.parse(e.data));
-        };
+    finalizeCode: function() {
+        if(!this.peer.localDescription) return;
+        const data = JSON.stringify(this.peer.localDescription);
+        const compressed = LZString.compressToBase64(data);
+        LOBBY_UI.showCode(compressed, this.isHost ? "HOST CODE" : "GUEST CODE");
+        if(this.isHost) LOBBY_UI.startScanning();
     },
-
-    receiveCode: function(str) {
+    setupChannel: function() {
+        this.channel.onopen = () => { LOBBY_UI.close(); APP.startBattle(this.isHost ? 'host' : 'guest'); };
+        this.channel.onmessage = (e) => { if (APP.game) APP.game.handleNetworkMsg(JSON.parse(e.data)); };
+    },
+    handleData: function(dataStr) {
         try {
-            const desc = JSON.parse(LZString.decompressFromBase64(str));
+            const d = LZString.decompressFromBase64(dataStr);
+            if(!d) return false;
+            const desc = JSON.parse(d);
             this.peer.setRemoteDescription(new RTCSessionDescription(desc));
-            if(this.role === 'guest') {
+            if (!this.isHost && desc.type === 'offer') {
                 this.peer.createAnswer().then(a => this.peer.setLocalDescription(a));
-                LOBBY.step2(); // Guest switches to showing QR
+                return true;
             }
-            return true;
-        } catch(e) { return false; }
+            if (this.isHost && desc.type === 'answer') return true;
+        } catch(e) { console.error("Data Error", e); alert("Invalid Code!"); }
+        return false;
     },
-
-    send: function(msg) {
-        if(this.chan && this.chan.readyState === 'open') this.chan.send(JSON.stringify(msg));
-    }
+    send: function(data) { if (this.channel && this.channel.readyState === 'open') this.channel.send(JSON.stringify(data)); }
 };
 
-/* --- LOBBY UI --- */
-const LOBBY = {
+const LOBBY_UI = {
     stream: null, scanning: false,
-    open: function() { document.getElementById('lobby').style.display = 'flex'; },
-    close: function() { 
-        this.stopCam(); document.getElementById('lobby').style.display = 'none'; 
-    },
-    host: function() { 
-        document.getElementById('setup-btns').classList.add('hidden');
-        document.getElementById('conn-ui').classList.remove('hidden');
-        document.getElementById('step-txt').innerText = "1. HOST: Generating...";
-        NET.init('host'); 
-    },
-    join: function() { 
-        document.getElementById('setup-btns').classList.add('hidden');
-        document.getElementById('conn-ui').classList.remove('hidden');
-        document.getElementById('step-txt').innerText = "1. GUEST: Scan Host";
-        NET.init('guest'); 
-    },
-    showQR: function(data) {
-        document.getElementById('qr-display').classList.remove('hidden');
+    open: function() {
+        document.getElementById('mp-lobby').style.display = 'flex';
+        document.getElementById('role-select').classList.remove('hidden');
+        document.getElementById('gen-area').classList.add('hidden');
+        document.getElementById('scan-area').classList.add('hidden');
+        document.getElementById('gen-desc').innerText = "Generating...";
         document.getElementById('qrcode').innerHTML = "";
-        new QRCode(document.getElementById("qrcode"), {text:data, width:160, height:160});
-        document.getElementById('copy-target').value = data;
     },
-    step2: function() {
-        // Guest Logic: After scanning host, show answer
-        this.stopCam();
-        document.getElementById('cam-display').classList.add('hidden');
-        document.getElementById('step-txt').innerText = "2. GUEST: Show this to Host";
-    },
-    copy: function() {
-        document.getElementById('copy-target').select(); document.execCommand('copy'); alert("Copied!");
-    },
-    togglePaste: function() { document.getElementById('paste-area').classList.remove('hidden'); },
-    pasteConnect: function() {
-        const c = document.getElementById('paste-in').value;
-        if(NET.receiveCode(c)) {
-            if(NET.role === 'host') document.getElementById('step-txt').innerText = "Connecting...";
-        } else alert("Invalid Code");
-    },
-    startCam: function() {
-        document.getElementById('cam-display').classList.remove('hidden');
-        const v = document.getElementById('vid');
-        navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}}).then(s=>{
-            this.stream=s; v.srcObject=s; v.play(); this.scanning=true; requestAnimationFrame(this.tick.bind(this));
-        }).catch(e=>alert("Cam failed. Use Paste."));
-    },
-    stopCam: function() { this.scanning=false; if(this.stream)this.stream.getTracks().forEach(t=>t.stop()); },
-    tick: function() {
-        if(!this.scanning) return;
-        const v=document.getElementById('vid'), c=document.getElementById('qr-canv'), ctx=c.getContext('2d');
-        if(v.readyState===v.HAVE_ENOUGH_DATA) {
-            c.width=v.videoWidth; c.height=v.videoHeight; ctx.drawImage(v,0,0);
-            const idata=ctx.getImageData(0,0,c.width,c.height);
-            const code=jsQR(idata.data,idata.width,idata.height);
-            if(code && NET.receiveCode(code.data)) {
-                if(NET.role==='host') document.getElementById('step-txt').innerText="Connecting...";
-            }
+    close: function() { this.stopScanning(); if(MP.peer) { MP.peer.close(); MP.peer=null; MP.active=false; } document.getElementById('mp-lobby').style.display = 'none'; },
+    startHost: function() { document.getElementById('role-select').classList.add('hidden'); document.getElementById('gen-area').classList.remove('hidden'); MP.init(true); },
+    startJoin: function() { document.getElementById('role-select').classList.add('hidden'); MP.init(false); this.startScanning(); },
+    showCode: function(data, title) {
+        document.getElementById('gen-area').classList.remove('hidden');
+        document.getElementById('gen-title').innerText = title;
+        document.getElementById('qrcode').innerHTML = "";
+        document.getElementById('my-code-text').value = data;
+        try {
+            new QRCode(document.getElementById("qrcode"), { text: data, width: 180, height: 180, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.L });
+            document.getElementById('gen-desc').innerText = "Scan this OR Copy Code below";
+        } catch(e) {
+            document.getElementById('qrcode').innerText = "Code too long for QR. Please use Copy/Paste.";
+            this.toggleFallback('gen-fallback');
         }
-        requestAnimationFrame(this.tick.bind(this));
+    },
+    toggleFallback: function(id) { document.getElementById(id).classList.toggle('visible'); },
+    copyCode: function() { document.getElementById('my-code-text').select(); document.execCommand('copy'); alert("Code copied!"); },
+    manualConnect: function() {
+        const val = document.getElementById('their-code-text').value;
+        if(val && MP.handleData(val)) this.stopScanning();
+    },
+    startScanning: function() {
+        document.getElementById('scan-area').classList.remove('hidden');
+        const v = document.getElementById('scan-video'), c = document.getElementById('scan-canvas'), ctx = c.getContext('2d');
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(s => {
+            this.stream = s; v.srcObject = s; v.setAttribute("playsinline", true); v.play();
+            this.scanning = true; requestAnimationFrame(tick);
+        }).catch(e => {
+            document.getElementById('camera-container').innerHTML = "<div style='color:#fff;padding:20px;text-align:center;padding-top:80px'>Camera Denied.<br>Use Paste Code below.</div>";
+            this.toggleFallback('scan-fallback');
+        });
+        const tick = () => {
+            if(!this.scanning) return;
+            if(v.readyState === v.HAVE_ENOUGH_DATA) {
+                c.height=v.videoHeight; c.width=v.videoWidth;
+                ctx.drawImage(v,0,0,c.width,c.height);
+                const idata = ctx.getImageData(0,0,c.width,c.height);
+                const code = jsQR(idata.data, idata.width, idata.height, { inversionAttempts: "dontInvert" });
+                if(code && MP.handleData(code.data)) {
+                    if(!MP.isHost) { this.stopScanning(); document.getElementById('scan-area').classList.add('hidden'); }
+                    else document.querySelector('#scan-area .status-txt').innerText = "Code Found! Connecting...";
+                }
+            }
+            requestAnimationFrame(tick);
+        }
+    },
+    stopScanning: function() { this.scanning = false; if(this.stream) { this.stream.getTracks().forEach(t => t.stop()); this.stream=null; } }
+};
+
+const APP = {
+    game: null,
+    init: function() { this.renderMenu(); },
+    getCardStats: function(k) { const b=BASE_CARDS[k], l=PLAYER.cards[k].level, m=Math.pow(1.1, l-1); return {...b, id:k, hp:Math.floor(b.hp*m), dmg:Math.floor(b.dmg*m), level:l}; },
+    getUpgradeCost: function(l) { return l*100; },
+    upgradeCard: function(k) { const c=this.getUpgradeCost(PLAYER.cards[k].level); if(PLAYER.gold>=c){PLAYER.gold-=c;PLAYER.cards[k].level++;this.renderMenu();} },
+    renderMenu: function() {
+        document.getElementById('gold-display').innerText=PLAYER.gold;
+        const g=document.getElementById('collection-grid'); g.innerHTML='';
+        DECK_KEYS.forEach(k=>{
+            const s=this.getCardStats(k), c=this.getUpgradeCost(s.level), aff=PLAYER.gold>=c;
+            const el=document.createElement('div'); el.className=`collection-card ${s.rarity}`;
+            el.innerHTML=`<div class="c-lvl-badge">Lv ${s.level}</div><div style="font-size:32px;margin:5px 0">${s.icon}</div><div style="font-size:12px;color:#fff;text-transform:uppercase">${s.name}</div><button class="upgrade-btn ${!aff?'cant-afford':''}" onclick="APP.upgradeCard('${k}')">UPGRADE (${c})</button>`;
+            g.appendChild(el);
+        });
+    },
+    startBattle: function(m) {
+        document.getElementById('menu-layer').style.display='none'; document.getElementById('game-view').style.display='block';
+        setTimeout(()=>{this.game=new Game(m);},100);
+    },
+    returnToMenu: function() {
+        document.getElementById('result-screen').style.display='none'; document.getElementById('game-view').style.display='none'; document.getElementById('menu-layer').style.display='flex';
+        if(APP.game){APP.game.stop(); APP.game=null;} if(MP.active)LOBBY_UI.close();
+        PLAYER.gold+=50; this.renderMenu();
     }
 };
 
-/* --- GAME LOGIC --- */
-const APP = {
-    start: function(mode) {
-        document.getElementById('menu-layer').style.display = 'none';
-        document.getElementById('game-view').style.display = 'block';
-        window.GAME = new Game(mode);
+class Vec2 { constructor(x,y){this.x=x;this.y=y} dist(v){return Math.hypot(this.x-v.x,this.y-v.y)} sub(v){return new Vec2(this.x-v.x,this.y-v.y)} norm(){const m=Math.hypot(this.x,this.y);return m===0?new Vec2(0,0):new Vec2(this.x/m,this.y/m)} }
+class Entity { constructor(x,y,t,hp,r){this.pos=new Vec2(x,y);this.team=t;this.maxHp=hp;this.hp=hp;this.radius=r;this.dead=false;this.hitFlash=0;} takeDamage(a){this.hp-=a;this.hitFlash=5;if(this.hp<=0){this.hp=0;this.dead=true;}} }
+
+class Unit extends Entity {
+    constructor(x,y,t,s,g){super(x,y,t,s.hp,14);this.stats=s;this.speed=s.speed;this.icon=s.icon;this.atkT=0;this.lane=x<g.width/2?'left':'right';this.state='IDLE';this.calcState(g);}
+    calcState(g){const rT=g.riverY-25,rB=g.riverY+25,isB=this.team==='blue';let cr=false;if(isB&&this.pos.y>rB)cr=true;if(!isB&&this.pos.y<rT)cr=true;this.state=cr?'BRIDGE':'HUNT';}
+    update(dt,en,g){
+        if(this.dead)return; if(this.hitFlash>0)this.hitFlash--; this.atkT-=dt;
+        let t=null,cl=180; for(const e of en){if(e.dead)continue;const d=this.pos.dist(e.pos);if(d<cl){cl=d;t=e;}}
+        if(t&&this.pos.dist(t.pos)<=this.stats.range+t.radius){ if(this.atkT<=0){ if(this.stats.range>30)g.addProj(this.pos,t,this.stats.dmg); else t.takeDamage(this.stats.dmg); this.atkT=1.2; } return; }
+        let d=null, bX=this.lane==='left'?g.bLX:g.bRX, rT=g.riverY-35, rB=g.riverY+35, isB=this.team==='blue';
+        if(this.state==='BRIDGE'){ const eY=isB?rB+10:rT-10; d=new Vec2(bX,eY); if(this.pos.dist(d)<15)this.state='CROSS'; }
+        else if(this.state==='CROSS'){ const eY=isB?rT-10:rB+10; d=new Vec2(bX,eY); if(Math.abs(this.pos.x-bX)>5)this.pos.x+=(bX-this.pos.x)*5*dt; if(this.pos.dist(d)<15)this.state='HUNT'; }
+        else { if(t)d=t.pos; else { const ts=isB?g.rT:g.bT, idx=this.lane==='left'?0:1; d=(!ts[idx].dead)?ts[idx].pos:ts[2].pos; } }
+        if(d){ const dir=d.sub(this.pos).norm(); this.pos.x+=dir.x*this.speed*dt; this.pos.y+=dir.y*this.speed*dt; }
     }
-};
+    draw(ctx){ if(this.dead)return; ctx.fillStyle='rgba(0,0,0,0.3)';ctx.beginPath();ctx.ellipse(this.pos.x,this.pos.y+6,this.radius,this.radius*0.6,0,0,Math.PI*2);ctx.fill(); ctx.fillStyle=this.hitFlash>0?'#fff':(this.team==='blue'?CONFIG.COLORS.BLUE:CONFIG.COLORS.RED); ctx.beginPath();ctx.arc(this.pos.x,this.pos.y,this.radius,0,Math.PI*2);ctx.fill(); ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke(); ctx.font='16px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(this.icon,this.pos.x,this.pos.y); const p=this.hp/this.maxHp; if(p<1){ctx.fillStyle='#333';ctx.fillRect(this.pos.x-10,this.pos.y-22,20,4);ctx.fillStyle=this.team==='blue'?'#4f4':'#f44';ctx.fillRect(this.pos.x-10,this.pos.y-22,20*p,4);} }
+}
+
+class Tower extends Entity {
+    constructor(x,y,t,tp){super(x,y,t,tp==='king'?3000:2000,tp==='king'?32:24);this.type=tp;this.rel=0;this.range=210;}
+    update(dt,en,g){ if(this.dead)return; if(this.hitFlash>0)this.hitFlash--; this.rel-=dt; if(this.rel<=0){ let t=null,cl=this.range; for(const e of en){if(e.dead)continue;const d=this.pos.dist(e.pos);if(d<cl){cl=d;t=e;}} if(t){g.addProj(this.pos,t,80);this.rel=0.8;} } }
+    draw(ctx){ if(this.dead){ctx.fillStyle='#444';ctx.beginPath();ctx.arc(this.pos.x,this.pos.y,10,0,Math.PI*2);ctx.fill();return;} ctx.fillStyle=this.hitFlash>0?'#fff':(this.team==='blue'?CONFIG.COLORS.BLUE:CONFIG.COLORS.RED); ctx.strokeStyle='#222';ctx.lineWidth=3;ctx.beginPath(); if(this.type==='king')ctx.rect(this.pos.x-this.radius,this.pos.y-this.radius,this.radius*2,this.radius*2); else ctx.arc(this.pos.x,this.pos.y,this.radius,0,Math.PI*2); ctx.fill();ctx.stroke(); ctx.fillStyle='#fff';ctx.font='20px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(this.type==='king'?'♔':'♕',this.pos.x,this.pos.y); const p=this.hp/this.maxHp; ctx.fillStyle='#333';ctx.fillRect(this.pos.x-15,this.pos.y-this.radius-10,30,5);ctx.fillStyle=this.team==='blue'?'#4f4':'#f44';ctx.fillRect(this.pos.x-15,this.pos.y-this.radius-10,30*p,5); }
+}
+
+class Proj { constructor(p,t,d){this.pos=new Vec2(p.x,p.y);this.t=t;this.d=d;this.act=true;} update(dt){if(!this.act)return;const dir=this.t.pos.sub(this.pos).norm();this.pos.x+=dir.x*450*dt;this.pos.y+=dir.y*450*dt;if(this.pos.dist(this.t.pos)<15){this.t.takeDamage(this.d);this.act=false;}} draw(c){if(!this.act)return;c.fillStyle='#ff0';c.beginPath();c.arc(this.pos.x,this.pos.y,5,0,Math.PI*2);c.fill();} }
+class Eff { constructor(x,y,c,r){this.pos=new Vec2(x,y);this.c=c;this.mr=r;this.t=0;this.act=true;} update(dt){this.t+=dt;if(this.t>0.4)this.act=false;} draw(c){c.globalAlpha=1-(this.t/0.4);c.fillStyle=this.c;c.beginPath();c.arc(this.pos.x,this.pos.y,(this.t/0.4)*this.mr,0,Math.PI*2);c.fill();c.globalAlpha=1;} }
+class Float { constructor(x,y){this.x=x;this.y=y;this.l=0;this.act=true;} update(dt){this.l+=dt;this.y-=50*dt;if(this.l>1.5)this.act=false;} draw(c){c.save();c.globalAlpha=Math.max(0,1-(this.l/1.5));c.font='40px serif';c.textAlign='center';c.fillText('👑',this.x,this.y);c.restore();} }
 
 class Game {
     constructor(mode) {
-        this.mode = mode; // 'single', 'host', 'guest'
-        this.isGuest = (mode === 'guest');
-        this.canv = document.getElementById('canvas');
-        this.ctx = this.canvas.getContext('2d');
-        this.resize();
-        
-        this.elixir = 5;
-        this.hand = [];
-        this.fillHand();
-        
-        this.entities = [];
-        this.running = true;
-        this.lastT = 0;
-        
-        this.towers = [];
-        this.initWorld();
-        
-        // Input
-        this.canv.addEventListener('mousedown', e => this.input(e));
-        this.canv.addEventListener('touchstart', e => this.input(e.touches[0]));
-        
-        requestAnimationFrame(t => this.loop(t));
-        
-        // Start Loop
-        setInterval(() => { if(this.running && this.elixir<10) this.elixir+=0.1; this.ui(); }, 300);
-        if(mode==='single') setInterval(() => this.ai(), 3000);
+        this.mode=mode; this.isGuest=(mode==='guest');
+        this.canvas=document.getElementById('game-canvas'); this.ctx=this.canvas.getContext('2d');
+        this.running=true; this.resize(); this.elixir=5; this.et=0; this.go=false;
+        const k=[...DECK_KEYS,...DECK_KEYS]; this.shuffle(k); this.deck=k;
+        this.hand=[this.deck.pop(),this.deck.pop(),this.deck.pop(),this.deck.pop()]; this.nextCard=this.deck.pop(); this.sel=-1;
+        this.bC=0; this.rC=0; this.projs=[]; this.effs=[]; this.units=[]; this.floats=[];
+        this.initLvl(); this.input(); this.ui(); this.lt=performance.now(); this.aiT=0;
+        this.loopId=requestAnimationFrame(t=>this.loop(t));
     }
-
-    resize() {
-        const p = this.canv.parentElement;
-        this.canv.width = CFG.W = p.clientWidth;
-        this.canv.height = CFG.H = p.clientHeight;
-        CFG.PH = CFG.H - 200; // Play Height above HUD
-        CFG.RY = CFG.PH / 2;  // River Y
+    stop(){this.running=false;cancelAnimationFrame(this.loopId);}
+    shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}}
+    resize(){const p=this.canvas.parentElement;this.width=this.canvas.width=p.clientWidth;this.height=this.canvas.height=p.clientHeight;this.pH=this.height-CONFIG.HUD_HEIGHT;this.riverY=this.pH/2;this.bLX=this.width*0.25;this.bRX=this.width*0.75;}
+    initLvl(){ const rY=this.pH*0.25, bY=this.pH*0.75;
+        this.rT=[new Tower(this.width*0.25,rY,'red','p'),new Tower(this.width*0.75,rY,'red','p'),new Tower(this.width*0.5,this.pH*0.15,'red','king')];
+        this.bT=[new Tower(this.width*0.25,bY,'blue','p'),new Tower(this.width*0.75,bY,'blue','p'),new Tower(this.width*0.5,this.pH*0.94,'blue','king')];
     }
+    addProj(p,t,d){this.projs.push(new Proj(p,t,d));}
+    spawn(k,x,y,t){const s=APP.getCardStats(k); if(s.count===1)this.units.push(new Unit(x,y,t,s,this)); else {for(let i=0;i<s.count;i++)this.units.push(new Unit(x+(Math.random()-.5)*30,y+(Math.random()-.5)*30,t,s,this));} }
+    cast(k,x,y,t){const s=APP.getCardStats(k); this.effs.push(new Eff(x,y,s.color,s.radius)); const ts=t==='blue'?[...this.rT,...this.units.filter(u=>u.team==='red')]:[...this.bT,...this.units.filter(u=>u.team==='blue')]; ts.forEach(e=>{if(!e.dead&&e.pos.dist(new Vec2(x,y))<=s.radius)e.takeDamage(s.dmg);}); }
+    
+    handleNetworkMsg(msg) { if(msg.type==='SPAWN') { const s=APP.getCardStats(msg.key); if(s.type==='unit')this.spawn(msg.key,msg.x,msg.y,msg.team); else this.cast(msg.key,msg.x,msg.y,msg.team); } }
 
-    fillHand() {
-        while(this.hand.length < 4) this.hand.push(DECK[Math.floor(Math.random()*DECK.length)]);
-    }
-
-    initWorld() {
-        // Red is Top (Logic Y < River), Blue is Bottom (Logic Y > River)
-        const w = CFG.W, h = CFG.PH;
-        // Red Towers (Opponent for Host, Self for Guest)
-        this.addEnt('TOWER', w*0.25, h*0.2, 'red');
-        this.addEnt('TOWER', w*0.75, h*0.2, 'red');
-        this.addEnt('KING',  w*0.5,  h*0.1, 'red');
-        // Blue Towers (Self for Host, Opponent for Guest)
-        this.addEnt('TOWER', w*0.25, h*0.8, 'blue');
-        this.addEnt('TOWER', w*0.75, h*0.8, 'blue');
-        this.addEnt('KING',  w*0.5,  h*0.9, 'blue');
-    }
-
-    addEnt(type, x, y, team, data={}) {
-        this.entities.push({type, x, y, team, hp:1000, maxHp:1000, ...data});
-    }
-
-    input(e) {
-        const rect = this.canv.getBoundingClientRect();
-        let rawX = e.clientX - rect.left;
-        let rawY = e.clientY - rect.top;
-
-        // If clicking HUD, handle selection
-        if(rawY > CFG.PH) {
-            const idx = Math.floor((rawX / CFG.W) * 4);
-            if(idx < this.hand.length) this.sel = idx;
-            this.ui();
-            return;
-        }
-
-        if(this.sel === undefined || this.elixir < CARDS[this.hand[this.sel]].cost) return;
-
-        // COORDINATE TRANSFORMATION
-        // We must convert "Screen Click" to "Logic Coordinates"
-        // Logic: Blue is Bottom (High Y), Red is Top (Low Y).
-        
-        let logicX = rawX;
-        let logicY = rawY;
-
-        if(this.isGuest) {
-            // Guest sees Red at Bottom.
-            // Guest clicks Bottom (High Y). Logic needs to be Top (Low Y).
-            logicX = CFG.W - rawX;
-            logicY = CFG.PH - rawY;
-        }
-
-        const cardKey = this.hand[this.sel];
-        const card = CARDS[cardKey];
-        const team = this.isGuest ? 'red' : 'blue';
-
-        // Check placement validity
-        // Blue can place Y > River. Red can place Y < River.
-        const valid = (team === 'blue' && logicY > CFG.RY) || (team === 'red' && logicY < CFG.RY);
-        
-        if(valid || card.type === 'spell') {
-            this.spawn(cardKey, logicX, logicY, team);
-            if(this.mode !== 'single') NET.send({key:cardKey, x:logicX, y:logicY, team});
-            
-            this.elixir -= card.cost;
-            this.hand[this.sel] = DECK[Math.floor(Math.random()*DECK.length)];
-            this.sel = undefined;
-            this.ui();
+    update(dt){
+        if(this.go)return; this.et+=dt; if(this.et>CONFIG.ELIXIR_RATE){this.elixir=Math.min(this.elixir+1,10);this.et=0;this.ui();}
+        document.getElementById('elixir-fill').style.width=(this.elixir/10)*100+'%'; document.getElementById('elixir-val').innerText=Math.floor(this.elixir);
+        if(this.mode==='single'){ this.aiT+=dt; if(this.aiT>4.5){this.aiT=0; const uk=DECK_KEYS.filter(k=>BASE_CARDS[k].type==='unit'), k=uk[Math.floor(Math.random()*uk.length)]; this.spawn(k, Math.random()>.5?this.bLX:this.bRX, this.riverY-80, 'red');} }
+        const aR=[...this.rT,...this.units.filter(u=>u.team==='red')], aB=[...this.bT,...this.units.filter(u=>u.team==='blue')];
+        [...this.rT,...this.bT,...this.units].forEach(e=>e.update(dt,e.team==='blue'?aR:aB,this));
+        this.projs.forEach(p=>p.update(dt)); this.effs.forEach(e=>e.update(dt)); this.floats.forEach(f=>f.update(dt));
+        this.units=this.units.filter(u=>!u.dead); this.projs=this.projs.filter(p=>p.act); this.effs=this.effs.filter(e=>e.act); this.floats=this.floats.filter(f=>f.act);
+        this.chkC(this.rT,'blue'); this.chkC(this.bT,'red');
+        if(this.rT[2].dead || this.bT[2].dead) { 
+            const blueWin=this.rT[2].dead; let iWon=false;
+            if(this.mode==='single') iWon=blueWin; else if(this.isGuest) iWon=!blueWin; else iWon=blueWin;
+            this.end(iWon?'VICTORY!':'DEFEAT!', iWon?'#4f4':'#f44');
         }
     }
-
-    spawn(key, x, y, team) {
-        const c = CARDS[key];
-        if(c.type === 'unit') {
-            for(let i=0; i<c.count; i++) {
-                this.addEnt('UNIT', x+Math.random()*20-10, y+Math.random()*20-10, team, {
-                    key:key, hp:c.hp, dmg:c.dmg, speed:c.speed, range:c.range, icon:c.icon, target:null, atkT:0
-                });
-            }
-        } else {
-            // Spell effect
-            this.entities.push({type:'FX', x, y, time:0, color:c.color, radius:c.radius});
-            // Damage logic omitted for brevity, focusing on sync
-        }
-    }
-
-    onNetMessage(msg) {
-        this.spawn(msg.key, msg.x, msg.y, msg.team);
-    }
-
-    ai() {
-        if(Math.random()>0.7) this.spawn('KNIGHT', CFG.W*0.5, CFG.PH*0.2, 'red');
-    }
-
-    loop(t) {
-        const dt = (t - this.lastT)/1000;
-        this.lastT = t;
-        if(this.running) this.update(dt);
-        this.draw();
-        requestAnimationFrame(t => this.loop(t));
-    }
-
-    update(dt) {
-        // Simple Battle Logic
-        this.entities.forEach(e => {
-            if(e.type === 'UNIT') {
-                // Find Target
-                let closest = null, dist = 9999;
-                this.entities.forEach(t => {
-                    if(t.team !== e.team && (t.type==='UNIT'||t.type==='TOWER'||t.type==='KING')) {
-                        const d = Math.hypot(e.x-t.x, e.y-t.y);
-                        if(d < dist) { dist=d; closest=t; }
-                    }
-                });
-
-                if(closest) {
-                    if(dist <= e.range) {
-                        // Attack
-                        e.atkT -= dt;
-                        if(e.atkT <= 0) { closest.hp -= e.dmg; e.atkT = 1; }
-                    } else {
-                        // Move
-                        const angle = Math.atan2(closest.y - e.y, closest.x - e.x);
-                        e.x += Math.cos(angle) * e.speed * dt;
-                        e.y += Math.sin(angle) * e.speed * dt;
-                    }
-                } else if(e.team === 'blue') e.y -= e.speed*dt; // Default move up
-                else e.y += e.speed*dt; // Default move down
-            }
-        });
-
-        // Cleanup Dead
-        this.entities = this.entities.filter(e => e.hp === undefined || e.hp > 0);
-        this.entities = this.entities.filter(e => e.type !== 'FX' || e.time < 0.5);
-    }
-
-    draw() {
-        this.ctx.fillStyle = '#4BA636';
-        this.ctx.fillRect(0,0,CFG.W,CFG.H);
-        
+    chkC(ts,tm){ts.forEach(t=>{if(t.dead&&!t.cAwarded){t.cAwarded=true;this.floats.push(new Float(t.pos.x,t.pos.y)); if(tm==='blue')this.bC++;else this.rC++;}});}
+    
+    draw(){
         this.ctx.save();
-        
-        // VIEW TRANSFORMATION
-        if(this.isGuest) {
-            // Guest sees world rotated 180 around CENTER OF PLAYFIELD
-            this.ctx.translate(CFG.W/2, CFG.PH/2);
-            this.ctx.rotate(Math.PI);
-            this.ctx.translate(-CFG.W/2, -CFG.PH/2);
+        if(this.isGuest){ 
+            // Fix: Rotate around center of PLAY AREA, not center of SCREEN
+            this.ctx.translate(this.width/2, this.pH/2); 
+            this.ctx.rotate(Math.PI); 
+            this.ctx.translate(-this.width/2, -this.pH/2); 
         }
 
-        // River
-        this.ctx.fillStyle = '#3FA7D6';
-        this.ctx.fillRect(0, CFG.RY-20, CFG.W, 40);
-
-        // Draw Entities
-        this.entities.forEach(e => {
-            if(e.type === 'UNIT') {
-                this.ctx.font = '20px serif';
-                this.ctx.textAlign = 'center';
-                this.ctx.fillText(e.icon, e.x, e.y);
-                // HP Bar
-                this.ctx.fillStyle = e.team==='blue'?'#4f4':'#f44';
-                this.ctx.fillRect(e.x-10, e.y-20, 20*(e.hp/CARDS[e.key].hp), 3);
-            } else if(e.type.includes('TOWER') || e.type === 'KING') {
-                this.ctx.fillStyle = e.team==='blue'?'#24d':'#d42';
-                this.ctx.fillRect(e.x-20, e.y-20, 40, 40);
-                this.ctx.fillStyle = '#fff';
-                this.ctx.fillText(e.hp, e.x, e.y);
-            }
-        });
-
+        this.ctx.fillStyle=CONFIG.COLORS.GRASS; this.ctx.fillRect(0,0,this.width,this.height);
+        this.ctx.fillStyle=CONFIG.COLORS.RIVER; this.ctx.fillRect(0,this.riverY-30,this.width,60);
+        this.ctx.fillStyle=CONFIG.COLORS.BRIDGE; const db=(x)=>{this.ctx.fillRect(x-30,this.riverY-35,60,70);this.ctx.strokeStyle='#4a3b2b';this.ctx.lineWidth=2;for(let i=0;i<=70;i+=10){this.ctx.beginPath();this.ctx.moveTo(x-30,this.riverY-35+i);this.ctx.lineTo(x+30,this.riverY-35+i);this.ctx.stroke();}}; db(this.bLX); db(this.bRX);
+        const all=[...this.rT,...this.bT,...this.units,...this.projs].sort((a,b)=>a.pos.y-b.pos.y);
+        all.forEach(e=>e.draw(this.ctx)); this.effs.forEach(e=>e.draw(this.ctx)); this.floats.forEach(f=>f.draw(this.ctx));
+        if(this.sel!==-1){
+            const d=BASE_CARDS[this.hand[this.sel]]; this.ctx.fillStyle='rgba(255,255,255,0.1)';
+            if(d.type==='unit'){ 
+                // Draw selection highlight in logical coordinates
+                const yStart = this.isGuest ? 0 : this.riverY+30; 
+                const hZone = this.isGuest ? this.riverY-30 : this.pH - (this.riverY+30);
+                this.ctx.fillRect(0, yStart, this.width, hZone);
+                const lineY = this.isGuest ? this.riverY-30 : this.riverY+30;
+                this.ctx.strokeStyle='#fff'; this.ctx.setLineDash([5,5]); this.ctx.lineWidth=2;
+                this.ctx.beginPath(); this.ctx.moveTo(0, lineY); this.ctx.lineTo(this.width, lineY); this.ctx.stroke(); this.ctx.setLineDash([]);
+            } else this.ctx.fillRect(0,0,this.width,this.height);
+        }
         this.ctx.restore();
     }
-
-    ui() {
-        document.getElementById('elixir-fill').style.width = (this.elixir/10)*100+'%';
-        document.getElementById('elixir-num').innerText = Math.floor(this.elixir);
-        
-        const div = document.getElementById('hand');
-        div.innerHTML = '';
-        this.hand.forEach((k, i) => {
-            const c = CARDS[k];
-            const el = document.createElement('div');
-            el.className = `card ${this.sel===i?'selected':''} ${this.elixir<c.cost?'disabled':''}`;
-            el.innerHTML = `<div style="font-size:24px">${c.icon}</div><div style="font-size:10px;color:#fff">${c.cost}</div>`;
-            el.onclick = (e) => { e.stopPropagation(); this.sel = i; this.ui(); };
-            div.appendChild(el);
+    loop(t){if(!this.running)return;const dt=Math.min((t-this.lt)/1000,0.1);this.lt=t;this.update(dt);this.draw();this.loopId=requestAnimationFrame(tm=>this.loop(tm));}
+    
+    input(){
+        const h=(e)=>{
+            if(this.go||this.sel===-1)return; e.preventDefault(); const r=this.canvas.getBoundingClientRect();
+            let x=(e.touches?e.touches[0].clientX:e.clientX)-r.left, y=(e.touches?e.touches[0].clientY:e.clientY)-r.top;
+            if(this.isGuest){
+                // Fix: Invert Y relative to Play Height (pH), not total Height
+                x = this.width - x;
+                y = this.pH - y;
+            }
+            const k=this.hand[this.sel], d=BASE_CARDS[k], tm=this.isGuest?'red':'blue';
+            let ok=d.type==='spell';
+            if(!ok){if(tm==='blue'&&y>this.riverY+30)ok=true; if(tm==='red'&&y<this.riverY-30)ok=true;}
+            if(ok&&this.elixir>=d.cost){
+                this.elixir-=d.cost; 
+                if(d.type==='unit')this.spawn(k,x,y,tm); else this.cast(k,x,y,tm);
+                if(this.mode!=='single') MP.send({type:'SPAWN',key:k,x:x,y:y,team:tm});
+                if(this.deck.length===0){const dk=[...DECK_KEYS];this.shuffle(dk);this.deck=dk;}
+                this.hand[this.sel]=this.nextCard; this.nextCard=this.deck.pop(); this.sel=-1; this.ui();
+            }
+        };
+        this.canvas.addEventListener('mousedown',h); this.canvas.addEventListener('touchstart',h,{passive:false});
+    }
+    ui(){
+        const h=document.getElementById('card-hand'); h.innerHTML='';
+        this.hand.forEach((k,i)=>{
+            const s=APP.getCardStats(k), el=document.createElement('div'), aff=this.elixir>=s.cost;
+            el.className=`card ${s.rarity} ${this.sel===i?'selected':''} ${!aff?'disabled':''}`;
+            el.innerHTML=`<div class="cost-bubble">${s.cost}</div><div class="c-icon">${s.icon}</div><div class="c-name">${s.name}</div><div class="c-lvl">Lv${s.level}</div>`;
+            el.onclick=()=>{if(aff){this.sel=(this.sel===i)?-1:i;this.ui();}}; h.appendChild(el);
         });
+        document.getElementById('next-icon').innerText=BASE_CARDS[this.nextCard].icon;
+    }
+    end(m,c){
+        this.go=true; document.getElementById('res-title').innerText=m; document.getElementById('res-title').style.color=c;
+        const mc=this.isGuest?this.rC:this.bC;
+        if(mc>=1)document.getElementById('c1').classList.add('crown-active'); if(mc>=2)document.getElementById('c2').classList.add('crown-active'); if(mc>=3)document.getElementById('c3').classList.add('crown-active');
+        document.getElementById('result-screen').style.display='flex';
     }
 }
+window.onload=()=>APP.init();
 </script>
 </body>
 </html>
+
+
 
 
 
