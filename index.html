@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Clash Royale: View Fixed</title>
+    <title>Clash Royale: Fixed & Balanced</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -136,7 +136,7 @@
 <canvas id="scan-canvas" style="display:none"></canvas>
 
 <script>
-/** CLASH ROYALE: FIXED VIEW */
+/** CLASH ROYALE: FIXED & BALANCED */
 const CONFIG={FPS:60,ELIXIR_RATE:2.8,HUD_HEIGHT:200,COLORS:{BLUE:'#4789CE',RED:'#EB4847',GRASS:'#4BA636',RIVER:'#3FA7D6',BRIDGE:'#8F7156'}};
 const PLAYER={gold:1000,cards:{KNIGHT:{level:1},ARCHER:{level:1},GIANT:{level:1},SKELLIES:{level:1},FIREBALL:{level:1},ARROWS:{level:1},WIZARD:{level:1},PEKKA:{level:1}}};
 const BASE_CARDS={
@@ -206,7 +206,7 @@ const LOBBY_UI = {
         document.getElementById('gen-desc').innerText = "Generating...";
         document.getElementById('qrcode').innerHTML = "";
     },
-    close: function() { this.stopScanning(); if(MP.peer) { MP.peer.close(); MP.peer=null; MP.active=false; } document.getElementById('mp-lobby').style.display = 'none'; },
+    close: function() { this.stopScanning(); if(MP.peer) { /* keep peer open */ } document.getElementById('mp-lobby').style.display = 'none'; },
     startHost: function() { document.getElementById('role-select').classList.add('hidden'); document.getElementById('gen-area').classList.remove('hidden'); MP.init(true); },
     startJoin: function() { document.getElementById('role-select').classList.add('hidden'); MP.init(false); this.startScanning(); },
     showCode: function(data, title) {
@@ -278,7 +278,7 @@ const APP = {
     },
     returnToMenu: function() {
         document.getElementById('result-screen').style.display='none'; document.getElementById('game-view').style.display='none'; document.getElementById('menu-layer').style.display='flex';
-        if(APP.game){APP.game.stop(); APP.game=null;} if(MP.active)LOBBY_UI.close();
+        if(APP.game){APP.game.stop(); APP.game=null;} if(MP.active){ MP.peer.close(); MP.active=false; LOBBY_UI.close(); }
         PLAYER.gold+=50; this.renderMenu();
     }
 };
@@ -320,7 +320,13 @@ class Game {
         const k=[...DECK_KEYS,...DECK_KEYS]; this.shuffle(k); this.deck=k;
         this.hand=[this.deck.pop(),this.deck.pop(),this.deck.pop(),this.deck.pop()]; this.nextCard=this.deck.pop(); this.sel=-1;
         this.bC=0; this.rC=0; this.projs=[]; this.effs=[]; this.units=[]; this.floats=[];
-        this.initLvl(); this.input(); this.ui(); this.lt=performance.now(); this.aiT=0;
+        this.initLvl(); this.input(); this.ui(); this.lt=performance.now(); this.syncT=0;
+        
+        // Bot / AI specific vars
+        this.botElixir = 5; 
+        this.botTargetCost = 0; 
+        this.botTargetCard = null;
+
         this.loopId=requestAnimationFrame(t=>this.loop(t));
     }
     stop(){this.running=false;cancelAnimationFrame(this.loopId);}
@@ -331,15 +337,93 @@ class Game {
         this.bT=[new Tower(this.width*0.25,bY,'blue','p'),new Tower(this.width*0.75,bY,'blue','p'),new Tower(this.width*0.5,this.pH*0.94,'blue','king')];
     }
     addProj(p,t,d){this.projs.push(new Proj(p,t,d));}
-    spawn(k,x,y,t){const s=APP.getCardStats(k); if(s.count===1)this.units.push(new Unit(x,y,t,s,this)); else {for(let i=0;i<s.count;i++)this.units.push(new Unit(x+(Math.random()-.5)*30,y+(Math.random()-.5)*30,t,s,this));} }
+    spawn(k,x,y,t){
+        const s=APP.getCardStats(k); 
+        // Deterministic offsets for multiplayer consistency
+        const off2=[{x:-15,y:0},{x:15,y:0}];
+        const off3=[{x:0,y:-15},{x:-15,y:15},{x:15,y:15}];
+        
+        if(s.count===1) this.units.push(new Unit(x,y,t,s,this)); 
+        else {
+            const offsets = s.count === 2 ? off2 : off3;
+            for(let i=0;i<s.count;i++){
+                // Use fixed offsets instead of Math.random
+                let ox = i < offsets.length ? offsets[i].x : 0;
+                let oy = i < offsets.length ? offsets[i].y : 0;
+                this.units.push(new Unit(x+ox, y+oy, t, s, this));
+            }
+        } 
+    }
     cast(k,x,y,t){const s=APP.getCardStats(k); this.effs.push(new Eff(x,y,s.color,s.radius)); const ts=t==='blue'?[...this.rT,...this.units.filter(u=>u.team==='red')]:[...this.bT,...this.units.filter(u=>u.team==='blue')]; ts.forEach(e=>{if(!e.dead&&e.pos.dist(new Vec2(x,y))<=s.radius)e.takeDamage(s.dmg);}); }
     
-    handleNetworkMsg(msg) { if(msg.type==='SPAWN') { const s=APP.getCardStats(msg.key); if(s.type==='unit')this.spawn(msg.key,msg.x,msg.y,msg.team); else this.cast(msg.key,msg.x,msg.y,msg.team); } }
+    handleNetworkMsg(msg) { 
+        if(msg.type==='SPAWN') { 
+            const s=APP.getCardStats(msg.key); 
+            // Denormalize coords
+            const rx = msg.x * this.width;
+            const ry = msg.y * this.pH;
+            
+            if(s.type==='unit') this.spawn(msg.key,rx,ry,msg.team); 
+            else this.cast(msg.key,rx,ry,msg.team); 
+        }
+        else if(msg.type==='SYNC' && this.isGuest) {
+            // Host authority for tower HP
+            for(let i=0; i<3; i++) {
+                if(this.rT[i]) this.rT[i].hp = msg.rH[i];
+                if(this.bT[i]) this.bT[i].hp = msg.bH[i];
+            }
+        }
+    }
 
     update(dt){
         if(this.go)return; this.et+=dt; if(this.et>CONFIG.ELIXIR_RATE){this.elixir=Math.min(this.elixir+1,10);this.et=0;this.ui();}
         document.getElementById('elixir-fill').style.width=(this.elixir/10)*100+'%'; document.getElementById('elixir-val').innerText=Math.floor(this.elixir);
-        if(this.mode==='single'){ this.aiT+=dt; if(this.aiT>4.5){this.aiT=0; const uk=DECK_KEYS.filter(k=>BASE_CARDS[k].type==='unit'), k=uk[Math.floor(Math.random()*uk.length)]; this.spawn(k, Math.random()>.5?this.bLX:this.bRX, this.riverY-80, 'red');} }
+        
+        // --- BOT AI ---
+        if(this.mode==='single'){ 
+            // Bot gets elixir just like player
+            this.botElixir += dt / CONFIG.ELIXIR_RATE;
+            if(this.botElixir > 10) this.botElixir = 10;
+
+            if(!this.botTargetCard) {
+                // Pick a plan
+                const uk=DECK_KEYS; 
+                this.botTargetCard = uk[Math.floor(Math.random()*uk.length)];
+                this.botTargetCost = BASE_CARDS[this.botTargetCard].cost;
+            } else {
+                // Wait for elixir
+                if(this.botElixir >= this.botTargetCost) {
+                    this.botElixir -= this.botTargetCost;
+                    const isUnit = BASE_CARDS[this.botTargetCard].type === 'unit';
+                    let sx, sy;
+                    
+                    if(isUnit) {
+                        // Spawn at back or bridge
+                        sx = Math.random()>.5 ? this.bLX : this.bRX;
+                        sy = this.riverY - (Math.random()>.5 ? 80 : 150);
+                    } else {
+                        // Spell targeting
+                        sx = Math.random()>.5 ? this.bLX : this.bRX;
+                        sy = this.pH * 0.8; // Target player side roughly
+                    }
+
+                    this.spawn(this.botTargetCard, sx, sy, 'red');
+                    this.botTargetCard = null; // Reset plan
+                }
+            }
+        } else if(!this.isGuest && this.mode!=='single') {
+            // Host sends periodic Sync for tower health to avoid drift
+            this.syncT += dt;
+            if(this.syncT > 1.0) { // Every 1 second
+                this.syncT = 0;
+                MP.send({
+                    type:'SYNC',
+                    rH: this.rT.map(t=>t.hp),
+                    bH: this.bT.map(t=>t.hp)
+                });
+            }
+        }
+
         const aR=[...this.rT,...this.units.filter(u=>u.team==='red')], aB=[...this.bT,...this.units.filter(u=>u.team==='blue')];
         [...this.rT,...this.bT,...this.units].forEach(e=>e.update(dt,e.team==='blue'?aR:aB,this));
         this.projs.forEach(p=>p.update(dt)); this.effs.forEach(e=>e.update(dt)); this.floats.forEach(f=>f.update(dt));
@@ -356,7 +440,6 @@ class Game {
     draw(){
         this.ctx.save();
         if(this.isGuest){ 
-            // Fix: Rotate around center of PLAY AREA, not center of SCREEN
             this.ctx.translate(this.width/2, this.pH/2); 
             this.ctx.rotate(Math.PI); 
             this.ctx.translate(-this.width/2, -this.pH/2); 
@@ -370,7 +453,6 @@ class Game {
         if(this.sel!==-1){
             const d=BASE_CARDS[this.hand[this.sel]]; this.ctx.fillStyle='rgba(255,255,255,0.1)';
             if(d.type==='unit'){ 
-                // Draw selection highlight in logical coordinates
                 const yStart = this.isGuest ? 0 : this.riverY+30; 
                 const hZone = this.isGuest ? this.riverY-30 : this.pH - (this.riverY+30);
                 this.ctx.fillRect(0, yStart, this.width, hZone);
@@ -387,18 +469,34 @@ class Game {
         const h=(e)=>{
             if(this.go||this.sel===-1)return; e.preventDefault(); const r=this.canvas.getBoundingClientRect();
             let x=(e.touches?e.touches[0].clientX:e.clientX)-r.left, y=(e.touches?e.touches[0].clientY:e.clientY)-r.top;
+            
+            // LOGIC COORDS (Player visual click -> Game Logic)
             if(this.isGuest){
-                // Fix: Invert Y relative to Play Height (pH), not total Height
+                // Invert for local logic check
                 x = this.width - x;
                 y = this.pH - y;
             }
+
             const k=this.hand[this.sel], d=BASE_CARDS[k], tm=this.isGuest?'red':'blue';
             let ok=d.type==='spell';
             if(!ok){if(tm==='blue'&&y>this.riverY+30)ok=true; if(tm==='red'&&y<this.riverY-30)ok=true;}
+            
             if(ok&&this.elixir>=d.cost){
                 this.elixir-=d.cost; 
                 if(d.type==='unit')this.spawn(k,x,y,tm); else this.cast(k,x,y,tm);
-                if(this.mode!=='single') MP.send({type:'SPAWN',key:k,x:x,y:y,team:tm});
+                
+                if(this.mode!=='single') {
+                    // NETWORK NORMALISED COORDS (0.0 - 1.0)
+                    // We send the logic coords normalised
+                    MP.send({
+                        type:'SPAWN',
+                        key:k,
+                        x: x / this.width,
+                        y: y / this.pH,
+                        team:tm
+                    });
+                }
+
                 if(this.deck.length===0){const dk=[...DECK_KEYS];this.shuffle(dk);this.deck=dk;}
                 this.hand[this.sel]=this.nextCard; this.nextCard=this.deck.pop(); this.sel=-1; this.ui();
             }
