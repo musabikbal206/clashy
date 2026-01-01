@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Clash Royale: Fixed & Balanced</title>
+    <title>Clash Royale: Sync Fixed</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -68,6 +68,11 @@
         .result-txt { font-size:50px; color:#fff; margin-bottom:20px; }
         .crowns-row { display:flex; gap:15px; margin-bottom:30px; font-size:50px; filter:grayscale(1); opacity:0.3; }
         .crown-active { filter:grayscale(0); opacity:1; text-shadow:0 0 20px gold; }
+        
+        #reconnect-overlay { position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:600; display:none; flex-direction:column; align-items:center; justify-content:center; }
+        .rec-box { background:#333; border:4px solid #EB4847; padding:20px; border-radius:12px; text-align:center; animation:pulse 1s infinite; }
+        @keyframes pulse { 0% { transform:scale(1); } 50% { transform:scale(1.02); } 100% { transform:scale(1); } }
+
         .hidden { display:none !important; }
     </style>
 </head>
@@ -88,12 +93,10 @@
 
     <div id="mp-lobby">
         <div class="menu-header" style="padding:10px; background:none"><div class="game-title" style="font-size:24px;">CONNECTION</div></div>
-        
         <div id="role-select" style="display:flex; gap:10px; margin-top:20px;">
             <button class="btn-main btn-blue" onclick="LOBBY_UI.startHost()">HOST GAME</button>
             <button class="btn-main" onclick="LOBBY_UI.startJoin()">JOIN GAME</button>
         </div>
-
         <div id="gen-area" class="hidden" style="text-align:center;">
             <div class="step-title" id="gen-title">SCAN THIS</div>
             <div class="qr-container"><div id="qrcode"></div></div>
@@ -104,7 +107,6 @@
                 <button class="btn-main" style="font-size:12px; padding:8px" onclick="LOBBY_UI.copyCode()">COPY CODE</button>
             </div>
         </div>
-
         <div id="scan-area" class="hidden">
             <div class="step-title" style="margin-top:20px">SCAN OPPONENT</div>
             <div id="camera-container"><video id="scan-video" playsinline></video></div>
@@ -124,6 +126,15 @@
             <div class="hud-top"><div class="elixir-bar"><div id="elixir-fill" class="elixir-fill"></div><div id="elixir-val" class="elixir-txt">5</div></div></div>
             <div class="hud-bottom"><div class="next-card-slot"><span class="next-lbl">NEXT</span><div id="next-icon" style="font-size:24px">?</div></div><div id="card-hand"></div></div>
         </div>
+        
+        <!-- Reconnect Overlay -->
+        <div id="reconnect-overlay">
+            <div class="rec-box">
+                <div style="font-size:24px; color:#fff; margin-bottom:10px">⚠ DISCONNECTED</div>
+                <div style="font-size:14px; color:#aaa;">Reconnecting...</div>
+                <div id="rec-timer" style="font-size:40px; color:#ffce00; margin-top:10px">30</div>
+            </div>
+        </div>
     </div>
 
     <div id="result-screen">
@@ -136,8 +147,8 @@
 <canvas id="scan-canvas" style="display:none"></canvas>
 
 <script>
-/** CLASH ROYALE: FIXED & BALANCED */
-const CONFIG={FPS:60,ELIXIR_RATE:2.8,HUD_HEIGHT:200,COLORS:{BLUE:'#4789CE',RED:'#EB4847',GRASS:'#4BA636',RIVER:'#3FA7D6',BRIDGE:'#8F7156'}};
+/** CLASH ROYALE: SYNC FIXED & OFFLINE DETECTION */
+const CONFIG={FPS:60, ELIXIR_RATE:2.8, HUD_HEIGHT:200, COLORS:{BLUE:'#4789CE',RED:'#EB4847',GRASS:'#4BA636',RIVER:'#3FA7D6',BRIDGE:'#8F7156'}};
 const PLAYER={gold:1000,cards:{KNIGHT:{level:1},ARCHER:{level:1},GIANT:{level:1},SKELLIES:{level:1},FIREBALL:{level:1},ARROWS:{level:1},WIZARD:{level:1},PEKKA:{level:1}}};
 const BASE_CARDS={
     KNIGHT:{type:'unit',rarity:'common',name:'Knight',cost:3,hp:900,dmg:90,speed:45,range:20,count:1,icon:'⚔️'},
@@ -153,13 +164,21 @@ const DECK_KEYS=Object.keys(BASE_CARDS);
 
 // --- NETWORK ---
 const MP = {
-    peer: null, channel: null, isHost: false, active: false, genTimer: null,
+    peer: null, channel: null, isHost: false, active: false, genTimer: null, lastMsg: 0,
     init: function(isHost) {
-        this.isHost = isHost; this.active = true;
+        this.isHost = isHost; this.active = true; this.lastMsg = Date.now();
         const config = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
         this.peer = new RTCPeerConnection(config);
         this.genTimer = setTimeout(() => { this.finalizeCode(); }, 1500);
         this.peer.onicecandidate = (e) => { if (!e.candidate) { clearTimeout(this.genTimer); this.finalizeCode(); } };
+        
+        // Disconnect Monitoring
+        this.peer.oniceconnectionstatechange = () => {
+            if(this.peer.iceConnectionState === 'disconnected' || this.peer.iceConnectionState === 'failed') {
+                console.log("ICE State: " + this.peer.iceConnectionState);
+            }
+        };
+
         if (isHost) {
             this.channel = this.peer.createDataChannel("game");
             this.setupChannel();
@@ -177,7 +196,10 @@ const MP = {
     },
     setupChannel: function() {
         this.channel.onopen = () => { LOBBY_UI.close(); APP.startBattle(this.isHost ? 'host' : 'guest'); };
-        this.channel.onmessage = (e) => { if (APP.game) APP.game.handleNetworkMsg(JSON.parse(e.data)); };
+        this.channel.onmessage = (e) => { 
+            this.lastMsg = Date.now(); // Heartbeat received
+            if (APP.game) APP.game.handleNetworkMsg(JSON.parse(e.data)); 
+        };
     },
     handleData: function(dataStr) {
         try {
@@ -206,7 +228,7 @@ const LOBBY_UI = {
         document.getElementById('gen-desc').innerText = "Generating...";
         document.getElementById('qrcode').innerHTML = "";
     },
-    close: function() { this.stopScanning(); if(MP.peer) { /* keep peer open */ } document.getElementById('mp-lobby').style.display = 'none'; },
+    close: function() { this.stopScanning(); document.getElementById('mp-lobby').style.display = 'none'; },
     startHost: function() { document.getElementById('role-select').classList.add('hidden'); document.getElementById('gen-area').classList.remove('hidden'); MP.init(true); },
     startJoin: function() { document.getElementById('role-select').classList.add('hidden'); MP.init(false); this.startScanning(); },
     showCode: function(data, title) {
@@ -278,7 +300,9 @@ const APP = {
     },
     returnToMenu: function() {
         document.getElementById('result-screen').style.display='none'; document.getElementById('game-view').style.display='none'; document.getElementById('menu-layer').style.display='flex';
-        if(APP.game){APP.game.stop(); APP.game=null;} if(MP.active){ MP.peer.close(); MP.active=false; LOBBY_UI.close(); }
+        document.getElementById('reconnect-overlay').style.display='none';
+        if(APP.game){APP.game.stop(); APP.game=null;} 
+        if(MP.active){ if(MP.peer)MP.peer.close(); MP.active=false; MP.peer=null; }
         PLAYER.gold+=50; this.renderMenu();
     }
 };
@@ -320,12 +344,19 @@ class Game {
         const k=[...DECK_KEYS,...DECK_KEYS]; this.shuffle(k); this.deck=k;
         this.hand=[this.deck.pop(),this.deck.pop(),this.deck.pop(),this.deck.pop()]; this.nextCard=this.deck.pop(); this.sel=-1;
         this.bC=0; this.rC=0; this.projs=[]; this.effs=[]; this.units=[]; this.floats=[];
-        this.initLvl(); this.input(); this.ui(); this.lt=performance.now(); this.syncT=0;
+        this.initLvl(); this.input(); this.ui(); 
         
-        // Bot / AI specific vars
-        this.botElixir = 5; 
-        this.botTargetCost = 0; 
-        this.botTargetCard = null;
+        // Loop Vars for Fixed Time Step
+        this.lt=performance.now(); 
+        this.accumulator = 0;
+        this.FIXED_STEP = 1/60; // 60 updates per second guaranteed
+
+        this.syncT=0; this.pingT=0;
+        this.botElixir = 5; this.botTargetCard = null;
+
+        // Disconnect Detection
+        MP.lastMsg = Date.now(); // Reset on start
+        this.recStart = 0;
 
         this.loopId=requestAnimationFrame(t=>this.loop(t));
     }
@@ -339,15 +370,12 @@ class Game {
     addProj(p,t,d){this.projs.push(new Proj(p,t,d));}
     spawn(k,x,y,t){
         const s=APP.getCardStats(k); 
-        // Deterministic offsets for multiplayer consistency
         const off2=[{x:-15,y:0},{x:15,y:0}];
         const off3=[{x:0,y:-15},{x:-15,y:15},{x:15,y:15}];
-        
         if(s.count===1) this.units.push(new Unit(x,y,t,s,this)); 
         else {
             const offsets = s.count === 2 ? off2 : off3;
             for(let i=0;i<s.count;i++){
-                // Use fixed offsets instead of Math.random
                 let ox = i < offsets.length ? offsets[i].x : 0;
                 let oy = i < offsets.length ? offsets[i].y : 0;
                 this.units.push(new Unit(x+ox, y+oy, t, s, this));
@@ -359,75 +387,45 @@ class Game {
     handleNetworkMsg(msg) { 
         if(msg.type==='SPAWN') { 
             const s=APP.getCardStats(msg.key); 
-            // Denormalize coords
             const rx = msg.x * this.width;
             const ry = msg.y * this.pH;
-            
             if(s.type==='unit') this.spawn(msg.key,rx,ry,msg.team); 
             else this.cast(msg.key,rx,ry,msg.team); 
         }
         else if(msg.type==='SYNC' && this.isGuest) {
-            // Host authority for tower HP
-            for(let i=0; i<3; i++) {
-                if(this.rT[i]) this.rT[i].hp = msg.rH[i];
-                if(this.bT[i]) this.bT[i].hp = msg.bH[i];
-            }
+            for(let i=0; i<3; i++) { if(this.rT[i]) this.rT[i].hp = msg.rH[i]; if(this.bT[i]) this.bT[i].hp = msg.bH[i]; }
         }
+        else if(msg.type==='PING') { /* handled in MP obj */ }
     }
 
-    update(dt){
-        if(this.go)return; this.et+=dt; if(this.et>CONFIG.ELIXIR_RATE){this.elixir=Math.min(this.elixir+1,10);this.et=0;this.ui();}
-        document.getElementById('elixir-fill').style.width=(this.elixir/10)*100+'%'; document.getElementById('elixir-val').innerText=Math.floor(this.elixir);
+    // Fixed Update logic for stable physics/movement
+    fixedUpdate(dt) {
+        if(this.go)return;
         
         // --- BOT AI ---
         if(this.mode==='single'){ 
-            // Bot gets elixir just like player
             this.botElixir += dt / CONFIG.ELIXIR_RATE;
             if(this.botElixir > 10) this.botElixir = 10;
-
             if(!this.botTargetCard) {
-                // Pick a plan
-                const uk=DECK_KEYS; 
-                this.botTargetCard = uk[Math.floor(Math.random()*uk.length)];
-                this.botTargetCost = BASE_CARDS[this.botTargetCard].cost;
+                const uk=DECK_KEYS; this.botTargetCard = uk[Math.floor(Math.random()*uk.length)];
             } else {
-                // Wait for elixir
-                if(this.botElixir >= this.botTargetCost) {
-                    this.botElixir -= this.botTargetCost;
+                const cost = BASE_CARDS[this.botTargetCard].cost;
+                if(this.botElixir >= cost) {
+                    this.botElixir -= cost;
                     const isUnit = BASE_CARDS[this.botTargetCard].type === 'unit';
-                    let sx, sy;
-                    
-                    if(isUnit) {
-                        // Spawn at back or bridge
-                        sx = Math.random()>.5 ? this.bLX : this.bRX;
-                        sy = this.riverY - (Math.random()>.5 ? 80 : 150);
-                    } else {
-                        // Spell targeting
-                        sx = Math.random()>.5 ? this.bLX : this.bRX;
-                        sy = this.pH * 0.8; // Target player side roughly
-                    }
-
+                    let sx = Math.random()>.5 ? this.bLX : this.bRX;
+                    let sy = isUnit ? this.riverY - (Math.random()>.5 ? 80 : 150) : this.pH * 0.8;
                     this.spawn(this.botTargetCard, sx, sy, 'red');
-                    this.botTargetCard = null; // Reset plan
+                    this.botTargetCard = null;
                 }
-            }
-        } else if(!this.isGuest && this.mode!=='single') {
-            // Host sends periodic Sync for tower health to avoid drift
-            this.syncT += dt;
-            if(this.syncT > 1.0) { // Every 1 second
-                this.syncT = 0;
-                MP.send({
-                    type:'SYNC',
-                    rH: this.rT.map(t=>t.hp),
-                    bH: this.bT.map(t=>t.hp)
-                });
             }
         }
 
         const aR=[...this.rT,...this.units.filter(u=>u.team==='red')], aB=[...this.bT,...this.units.filter(u=>u.team==='blue')];
         [...this.rT,...this.bT,...this.units].forEach(e=>e.update(dt,e.team==='blue'?aR:aB,this));
-        this.projs.forEach(p=>p.update(dt)); this.effs.forEach(e=>e.update(dt)); this.floats.forEach(f=>f.update(dt));
-        this.units=this.units.filter(u=>!u.dead); this.projs=this.projs.filter(p=>p.act); this.effs=this.effs.filter(e=>e.act); this.floats=this.floats.filter(f=>f.act);
+        this.projs.forEach(p=>p.update(dt)); 
+        this.units=this.units.filter(u=>!u.dead); this.projs=this.projs.filter(p=>p.act);
+        
         this.chkC(this.rT,'blue'); this.chkC(this.bT,'red');
         if(this.rT[2].dead || this.bT[2].dead) { 
             const blueWin=this.rT[2].dead; let iWon=false;
@@ -435,6 +433,48 @@ class Game {
             this.end(iWon?'VICTORY!':'DEFEAT!', iWon?'#4f4':'#f44');
         }
     }
+
+    // Visual update (interpolated or non-physics)
+    visualUpdate(dt) {
+        this.et+=dt; if(this.et>CONFIG.ELIXIR_RATE){this.elixir=Math.min(this.elixir+1,10);this.et=0;this.ui();}
+        document.getElementById('elixir-fill').style.width=(this.elixir/10)*100+'%'; document.getElementById('elixir-val').innerText=Math.floor(this.elixir);
+        this.effs.forEach(e=>e.update(dt)); this.floats.forEach(f=>f.update(dt));
+        this.effs=this.effs.filter(e=>e.act); this.floats=this.floats.filter(f=>f.act);
+
+        // Network Sync / Heartbeat
+        if(this.mode !== 'single') {
+            this.syncT += dt; this.pingT += dt;
+            
+            // Sync Tower HP
+            if(!this.isGuest && this.syncT > 1.0) { 
+                this.syncT = 0;
+                MP.send({ type:'SYNC', rH: this.rT.map(t=>t.hp), bH: this.bT.map(t=>t.hp) });
+            }
+            // Send Ping
+            if(this.pingT > 1.0) {
+                this.pingT = 0;
+                MP.send({ type:'PING' });
+            }
+
+            // CHECK DISCONNECT
+            const timeSinceMsg = Date.now() - MP.lastMsg;
+            const recUI = document.getElementById('reconnect-overlay');
+            
+            if(timeSinceMsg > 4000) { // 4 seconds without message = bad
+                if(!this.recStart) this.recStart = Date.now();
+                recUI.style.display = 'flex';
+                const elps = Math.floor((Date.now() - this.recStart)/1000);
+                const left = 30 - elps;
+                document.getElementById('rec-timer').innerText = left;
+                if(left <= 0) {
+                    this.end("CONNECTION LOST", "#fff");
+                }
+            } else {
+                if(this.recStart) { this.recStart = 0; recUI.style.display = 'none'; }
+            }
+        }
+    }
+
     chkC(ts,tm){ts.forEach(t=>{if(t.dead&&!t.cAwarded){t.cAwarded=true;this.floats.push(new Float(t.pos.x,t.pos.y)); if(tm==='blue')this.bC++;else this.rC++;}});}
     
     draw(){
@@ -463,19 +503,32 @@ class Game {
         }
         this.ctx.restore();
     }
-    loop(t){if(!this.running)return;const dt=Math.min((t-this.lt)/1000,0.1);this.lt=t;this.update(dt);this.draw();this.loopId=requestAnimationFrame(tm=>this.loop(tm));}
+    
+    loop(t){
+        if(!this.running)return;
+        
+        // Time Accumulator Pattern for Fixed Physics
+        let dt = (t - this.lt) / 1000;
+        if(dt > 0.25) dt = 0.25; // Clamp for lag spikes
+        this.lt = t;
+        this.accumulator += dt;
+
+        while(this.accumulator >= this.FIXED_STEP) {
+            this.fixedUpdate(this.FIXED_STEP);
+            this.accumulator -= this.FIXED_STEP;
+        }
+
+        this.visualUpdate(dt);
+        this.draw();
+        
+        this.loopId=requestAnimationFrame(tm=>this.loop(tm));
+    }
     
     input(){
         const h=(e)=>{
             if(this.go||this.sel===-1)return; e.preventDefault(); const r=this.canvas.getBoundingClientRect();
             let x=(e.touches?e.touches[0].clientX:e.clientX)-r.left, y=(e.touches?e.touches[0].clientY:e.clientY)-r.top;
-            
-            // LOGIC COORDS (Player visual click -> Game Logic)
-            if(this.isGuest){
-                // Invert for local logic check
-                x = this.width - x;
-                y = this.pH - y;
-            }
+            if(this.isGuest){ x = this.width - x; y = this.pH - y; }
 
             const k=this.hand[this.sel], d=BASE_CARDS[k], tm=this.isGuest?'red':'blue';
             let ok=d.type==='spell';
@@ -484,19 +537,9 @@ class Game {
             if(ok&&this.elixir>=d.cost){
                 this.elixir-=d.cost; 
                 if(d.type==='unit')this.spawn(k,x,y,tm); else this.cast(k,x,y,tm);
-                
                 if(this.mode!=='single') {
-                    // NETWORK NORMALISED COORDS (0.0 - 1.0)
-                    // We send the logic coords normalised
-                    MP.send({
-                        type:'SPAWN',
-                        key:k,
-                        x: x / this.width,
-                        y: y / this.pH,
-                        team:tm
-                    });
+                    MP.send({ type:'SPAWN', key:k, x: x / this.width, y: y / this.pH, team:tm });
                 }
-
                 if(this.deck.length===0){const dk=[...DECK_KEYS];this.shuffle(dk);this.deck=dk;}
                 this.hand[this.sel]=this.nextCard; this.nextCard=this.deck.pop(); this.sel=-1; this.ui();
             }
@@ -524,7 +567,6 @@ window.onload=()=>APP.init();
 </script>
 </body>
 </html>
-
 
 
 
